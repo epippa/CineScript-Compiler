@@ -31,7 +31,8 @@ struct Variable* tail = NULL;
 char* output; //stringa finale
 
 void yyerror(const char *s) {   //gestione errori
-    int yylex(void);
+    fprintf(stderr, "Errore di parsing: %s\n", s);
+    exit(1);
 }
 
 %}
@@ -59,3 +60,60 @@ void yyerror(const char *s) {   //gestione errori
 %left '{' '}'
 
 %start prog
+
+%%
+
+prog : stmtLi
+     ;
+//lista recorsiva di comandi/istruzioni
+stmtLi : stmt '\n' stmtLi   { }
+       | if_stmt '\n' stmtLi { }
+       | while_stmt '\n' stmtLi { }
+       | FINALE {printf("\n ### OUTPUT: ### \n%s", output); printSymbolTable(); exit(0);} //stampa contenuto di SCENA
+       | TAGLIA {exit(0)} //termina programma
+       ;
+
+while_stmt : WHILE com_expr '{' brace_statement { }
+           ;
+
+if_stmt : IF com_expr '{' brace_statement { }
+        ;
+
+com_expr : '(' compare ')' { currentScope++; }
+         ;
+
+//codice tra graffe
+brace_statement : stmt brace_statement { }
+                | if_stmt brace_statement { }
+                | while_stmt brace_statement { }
+                | '}'   {outOfBoundRemove();} /*elimina variabili dichiarate con il current scope*/
+                ;
+
+//confronto
+compare : expr EQUAL expr   { }
+        | expr NOTEQ expr   { }
+        | expr GREAT expr   { }
+        | expr GREATQ expr  { }
+        | expr LESS expr    { }
+        | expr LESSQ expr   { }
+        ;
+
+//istruzioni
+//$$ :   $1    $2   $3  $4  $5
+stmt : AZIONE FLOAT ID '=' expr     {add(tail, "float", $3, getFloatValue($5), NULL, currentScope); }   //assegnazione variabile float
+     | DRAMMA STRING ID '=' expr    {add(tail, "string", $3, NAN, getStringValue($5), currentScope); }  //assegnazione variabile stringa
+     | RIPRENDI ID '=' expr         {changeValue(lookup($2), getValue($4)); }   //riassegnazione variabili
+     | SCENA ID                     {printValue(lookup($2)); }
+     | COMMENT                      { }
+     ;
+
+//expressions
+expr : ID               {$$ = lookup($1);}
+     | NUM              {$$ = toVar(NULL, $1);}
+     | STRINGA          {$$ = toVar($1, NAN);}
+     | expr '+' expr    {$$ = varOp($1, $3, '+');}
+     | expr '-' expr    {$$ = varOp($1, $3, '-');}
+     | expr '*' expr    {$$ = varOp($1, $3, '*');}
+     | expr '/' expr    {$$ = varOp($1, $3, '/');}
+     ;
+%%
