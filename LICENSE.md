@@ -17,3 +17,21 @@ Alle seguenti condizioni:
 Licenza completa disponibile:
 - Testo leggibile: https://creativecommons.org/licenses/by-nc/4.0/deed.it
 - Testo legale: https://creativecommons.org/licenses/by-nc/4.0/legalcode
+
+
+Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)
+
+Copyright © 2025 Emanuele Pippa
+
+This work is licensed under a Creative Commons license. You are free to:
+
+- Share — copy and redistribute the material in any medium or format
+- Adapt — remix, transform, and build upon the material
+
+Under the following terms:
+
+- Attribution — you must give appropriate credit.
+- NonCommercial — you may not use the material for commercial purposes without permission.
+
+Full license (human-readable):  
+https://creativecommons.org/licenses/by-nc/4.0/
