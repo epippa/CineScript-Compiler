@@ -1,5 +1,4 @@
-/*  Licenza: Creative Commons BY-NC 4.0 © 2025 Emanuele Pippa
-    Uso consentito solo per scopi non commerciali, con attribuzione */
+/* @Emanuele Pippa */
 
 %option noyywrap
 %option case-insensitive
@@ -20,7 +19,6 @@ string  \"([^"]*)\"
 
 [ \t\r]+   { /* ignora spazi bianchi */ }
 \n         {/* ignora nuove linee */}
-@.*        {return COMMENT;}
 
 "=="    {return EQUAL;}
 "<"     {return LESS;}
@@ -45,14 +43,15 @@ string  \"([^"]*)\"
 "while"  {return WHILE;}
 "mentre" {return WHILE;}
 
-"film"      {return FUNZIONE;}
-"azione"    {return AZIONE;}    /*float*/
-"dramma"    {return DRAMMA;}    /*string*/
-"scena"     {return SCENA;}     /*per stampare (come dire "mostrare")*/
-"riprendi"  {return RIPRENDI;}  /*per assegnare*/
-"taglia"    {return TAGLIA;}    /*quit*/
-"finale"    {return FINALE;}    /*output*/
-"registra"  {return REGISTRA;}  /*return*/
+@.*         {return BATTUTA;}   /* commento */
+"film"      {return FILM;}  /* funzione */
+"azione"    {return AZIONE;}    /* dramma */
+"dramma"    {return DRAMMA;}    /* string */
+"scena"     {return SCENA;}     /* per stampare (come dire "mostrare") */
+"riprendi"  {return RIPRENDI;}  /* riassegna */
+"taglia"    {return TAGLIA;}    /* quit */
+"finale"    {return FINALE;}    /* output */
+"registra"  {return REGISTRA;}  /* return */
 
 "string"    {yylval.lexeme = "string"; return STRING;}
 "float"     {yylval.lexeme = "float"; return FLOAT;}

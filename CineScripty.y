@@ -1,5 +1,5 @@
-// Licenza: Creative Commons BY-NC 4.0 © 2025 Emanuele Pippa
-// Uso consentito solo per scopi non commerciali, con attribuzione
+// @EMANUELE PIPPA
+// CineScript - Linguaggio di programmazione basato sulla sceneggiatura
 
 /* definitions */
 %{
@@ -10,76 +10,81 @@
 
 #define CHAR_MAX 256
 
-//valori delle variabili: float o string
-union Value {
-    float floatValue;
-    char* stringValue;
-};
+typedef struct Variable Variable;
+typedef struct NodoArgomento NodoArgomento;
 
-//Symbol Table
-struct Variable{
+//Symbol Table: variabili (float/string)
+struct Variable {
     char* type; //float o string
     char* id;   //nome della variabile
-    int scope;  //livello in cui è dichiarata la variabile (if/while) -> (fuori dal loop) scope=0, (dentro il loop) scope=1+
-    union { float floatValue;
-            char* stringValue;
-          } value;
-    struct Variable* next;  //puntatore alla variabile successiva della lista
+    int scope;  //livello profondità dentro IF/WHILE
+    union { 
+        float floatValue;
+        char* stringValue;
+    } value;
+    struct Variable* next;
 };
 
-//Global Variables
-int currentScope=0;
-struct Variable* head = NULL;
-struct Variable* tail = NULL;
-char* output; //stringa finale
+//Nodo per lista argomenti
+typedef struct NodoArgomento {
+    Variable* val;
+    struct NodoArgomento* next;
+} NodoArgomento;
 
-void yyerror(const char *s) {   //gestione errori
-    fprintf(stderr, "Errore di parsing: %s\n", s);
-    exit(1);
-}
 
-struct Variable* lookup(char* s);
-struct Variable varOp(struct Variable a, struct Variable b, char op);
-struct Variable toVar(char* s, float f);
-struct Variable getValue(struct Variable v) { return v; }
-void add(struct Variable* tail, char* type, char* id, float f, char* s, int scope) {}
-void changeValue(struct Variable* v, struct Variable newVal) {}
-void printValue(struct Variable* v) {}
-float getFloatValue(struct Variable v) { return 0; }
-char* getStringValue(struct Variable v) { return ""; }
-void printSymbolTable() {}
-void outOfBoundRemove() {}
-char** newParamList(char* s) { return NULL; }
-char** appendParam(char** list, char* s) { return list; }
-struct NodoArgomento* creaNodoArgomento(struct Variable* var);
-struct NodoArgomento* aggiungiNodoArgomentoInTesta(struct NodoArgomento* catena, struct Variable* var);
-void addFunction(char* name, char** lista_parametri, int paramCount, struct Variable returnValue);
-struct Variable* callFunction(char* name, struct NodoArgomento* lista);
+//variabili globali
+int currentScope = 0;
+Variable* head = NULL;
+Variable* tail = NULL;
+char* output;
 
+// Prototipi
+void yyerror(const char *s);
 int yylex(void);
 
+Variable* lookup(char* s);
+Variable varOp(Variable a, Variable b, char op);
+Variable toVar(char* s, float f);
+Variable getValue(Variable v);
+
+void addVariable(char* type, char* name, float numero, char* stringa, int scope);
+void changeValue(Variable* v, Variable newVal);
+void printValue(Variable* v);
+float getFloatValue(Variable v);
+char* getStringValue(Variable v);
+void printSymbolTable(void);
+void outOfBoundRemove(void);
+
+char** newParamList(char* s);
+char** appendParam(char** list, char* s);
+
+NodoArgomento* creaNodoArgomento(Variable* var);
+NodoArgomento* addNodeToHead(NodoArgomento* catena, Variable* var);
+void addFunction(char* name, char** lista_parametri, int paramCount, Variable returnValue);
+Variable* callFunction(char* name, NodoArgomento* lista);
 %}
+
 
 %union{
     char* lexeme;   //id, string
     float value;    //num
-    struct Variable variable; //variabile (non è più un puntatore)
+    struct Variable* variabile;
     struct NodoArgomento* arglist;
     char** paramList;
-    int dummy;  //per evitare problemi di compilazione
 }
 
 //dichiazione token riconosciuti dal lexer
-%token IF WHILE DRAMMA RIPRENDI SCENA TAGLIA COMMENT FUNZIONE REGISTRA FINALE AZIONE
+%token IF WHILE DRAMMA RIPRENDI SCENA TAGLIA BATTUTA FILM REGISTRA FINALE AZIONE
 %token <value> NUM FLOAT
 %token <lexeme> ID STRING
 
 //Non terminali
-%type <variable> expr function_call stmt
 %type <lexeme> com_expr compare functionDeclaration
 %type <arglist> lista_argomenti
 %type <paramList> lista_parametri
-%type <dummy> stmtLi    //mi serve x compilare senza warning
+%type <variabile> expr function_call stmt
+
+
 
 %left '+' '-'
 %left '*' '/'
@@ -100,11 +105,12 @@ prog : stmtLi
      ;
 
 //lista recorsiva di comandi/istruzioni
-stmtLi : stmt '\n' stmtLi   { }
-       | if_stmt '\n' stmtLi { }
-       | while_stmt '\n' stmtLi { }
-       | FINALE {printf("\n ### OUTPUT: ### \n%s", output); printSymbolTable(); exit(0);} //stampa contenuto di SCENA
-       | TAGLIA {exit(0);} //termina programma
+stmtLi : stmt stmtLi  { }
+       | if_stmt stmtLi    { }
+       | while_stmt stmtLi { }
+       | FINALE     {printf("\n ### OUTPUT: ### \n%s", output); printSymbolTable(); exit(0);} //stampa contenuto di SCENA
+       | TAGLIA     {exit(0);} //termina programma
+       |            { } /*empty*/
        ;
 
 while_stmt : WHILE com_expr '{' brace_statement
@@ -133,76 +139,65 @@ compare : expr EQUAL expr   { }
         ;
 
 lista_argomenti : expr                     {$$ = creaNodoArgomento($1);}
-                | expr ',' lista_argomenti {$$ = aggiungiNodoArgomentoInTesta($3, $1);}
+                | expr ',' lista_argomenti {$$ = addNodeToHead($3, $1);}
                 |                          {$$ = NULL;}
                 ;
 
 
-functionDeclaration : FUNZIONE ID '(' lista_parametri ')' '{' stmtLi REGISTRA expr '}' {
-    addFunction($2, $4, $7, $9);    //id, parametri, corpo, return
-};
+functionDeclaration : FILM ID '(' lista_parametri ')' '{' stmtLi REGISTRA expr '}' {addFunction($2, $4, /*count*/0, *$9);}    //id, parametri, corpo, return
+                    ;
 
 lista_parametri : ID                 {$$ = newParamList($1);}
            | ID ',' lista_parametri  {$$ = appendParam($3, $1);}
-           |                    {$$ = NULL;} /*empty*/
+           |                         {$$ = NULL;} /*empty*/
            ;
 
-function_call : ID '(' lista_argomenti ')' {
-    $$ = callFunction($1, $3);
-};
+function_call : ID '(' lista_argomenti ')' {$$ = callFunction($1, $3);}
+              ;
 
 //istruzioni
-//$$ :   $1    $2   $3  $4  $5
-stmt : AZIONE FLOAT ID '=' expr     {add(tail, "float", $3, getFloatValue($5), NULL, currentScope); }   //assegnazione variabile float
-     | DRAMMA STRING ID '=' expr    {add(tail, "string", $3, NAN, getStringValue($5), currentScope); }  //assegnazione variabile stringa
-     | RIPRENDI ID '=' expr         {changeValue(lookup($2), getValue(*$4)); }   //riassegnazione variabili
-     | SCENA ID                     {printValue(lookup($2)); }
-     | COMMENT                      { }
-     | function_call                {$$ = $1;}  //chiamata funzione
+//$$ :   $1   $2   $3  $4
+stmt : AZIONE ID '=' expr   {addVariable("float", $2, getFloatValue(*$4), NULL, currentScope);}   //assegnazione variabile float
+     | DRAMMA ID '=' expr   {addVariable("string", $2, 0.0, getStringValue(*$4), currentScope);}  //assegnazione variabile stringa
+     | RIPRENDI ID '=' expr {changeValue(lookup($2), *$4);}     //riassegnazione variabili
+     | SCENA ID             {printValue(lookup($2));}           //stampa variabile
+     | BATTUTA              { }     //commento
+     | function_call        { }
      ;
 
-//expressions     $n sono pseudo-variables
-expr : ID               {$$ = lookup($1);}
-     | NUM              {$$ = toVar(NULL, $1);}
-     | STRING           {$$ = toVar($1, NAN);}
-     | expr '+' expr    {$$ = varOp($1, $3, '+');}
-     | expr '-' expr    {$$ = varOp($1, $3, '-');}
-     | expr '*' expr    {$$ = varOp($1, $3, '*');}
-     | expr '/' expr    {$$ = varOp($1, $3, '/');}
+//expressions
+expr : ID              {$$ = lookup($1);}
+     | NUM             {Variable temp = toVar(NULL, $1); $$ = malloc(sizeof(temp)); *$$ = temp;}
+     | STRING          {Variable temp = toVar($1, 0.0); $$ = malloc(sizeof(temp)); *$$ = temp;}
+     | expr '+' expr   {Variable temp = varOp(*$1, *$3, '+'); $$ = malloc(sizeof(temp)); *$$ = temp;}
+     | expr '-' expr   {Variable temp = varOp(*$1, *$3, '-'); $$ = malloc(sizeof(temp)); *$$ = temp;}
+     | expr '*' expr   {Variable temp = varOp(*$1, *$3, '*'); $$ = malloc(sizeof(temp)); *$$ = temp;}
+     | expr '/' expr   {Variable temp = varOp(*$1, *$3, '/'); $$ = malloc(sizeof(temp)); *$$ = temp;}
      ;
+
 %%      
-
 /* routines */
-
-#include "lex.yy.c"
 
 struct Function {
     char* name;         //nome funzione         (es.somma)
     char** lista_parametri;               //    (x,y)
     int paramCount;     //quantità parametri    (2)
-    struct Node* body;  //corpo della funzione  
-    char* returnExpressionText;           //    (x+y)
+    Variable returnValue;                 //    (x+y)
     struct Function* next;  //puntatore funzione successiva
 };
 
-//Nodo della catena (linked list) di argomenti
-struct NodoArgomento {
-    struct Variable* var;                 //Valore argomento (variabile, numero, stringa, ecc.)
-    struct NodoArgomento* next;
-};
-
 //Crea un nuovo nodo singolo
-struct NodoArgomento* creaNodoArgomento(struct Variable* var) {
-    struct NodoArgomento* nodo = (struct NodoArgomento*)malloc(sizeof(struct NodoArgomento));
-    nodo->var = var;
+NodoArgomento* creaNodoArgomento(Variable* valore) {
+    NodoArgomento* nodo = malloc(sizeof *nodo);
+    nodo->val = valore;
     nodo->next = NULL;
     return nodo;
 }
 
 //Aggiunge un nodo in testa a una catena
-struct NodoArgomento* aggiungiNodoArgomentoInTesta(struct NodoArgomento* catena, struct Variable* var) {
-    struct NodoArgomento* nodo = (struct NodoArgomento*)malloc(sizeof(struct NodoArgomento));
-    nodo->var = var;
+NodoArgomento* addNodeToHead(NodoArgomento* catena, Variable* valore) {
+    NodoArgomento* nodo = malloc(sizeof *nodo);
+    nodo->val = valore;
     nodo->next = catena;
     return nodo;
 }
@@ -210,13 +205,12 @@ struct NodoArgomento* aggiungiNodoArgomentoInTesta(struct NodoArgomento* catena,
 struct Function* listaFunzioni = NULL;
 
 //registra funzioni: aggiunge una nuova funzione alla lista delle funzioni (Symbol Table)
-void addFunction(char* name, char** lista_parametri, int paramCount, struct Variable returnValue) {
-    struct Function* f = (struct Function*)malloc(sizeof(struct Function));
+void addFunction(char* name, char** parameters, int numberParameters, Variable returnVal) {
+    struct Function* f = malloc(sizeof *f);
     f->name = strdup(name);
-    f->paramCount = paramCount;
-    f->lista_parametri = lista_parametri;
-    f->returnValue = strdup(returnValue);
-    f->body = NULL;
+    f->paramCount = numberParameters;
+    f->lista_parametri = parameters;
+    f->returnValue = returnVal;
     f->next = listaFunzioni;
     listaFunzioni = f;
 }
@@ -239,5 +233,185 @@ struct Function* lookupFunction(char* name) {
  * Valuta l’espressione ottenuta con evalExpr
  * Restituisce il risultato (una struct Variable*)
 */
-struct Variable* callFunction(char* name, struct NodoArgomento* lista);
+Variable* callFunction(char* name, struct NodoArgomento* lista);
 
+//trova variabile nella symbol table
+Variable* lookup(char* s) {
+    Variable* current = head;
+      while (current != NULL) {
+            if (strcmp(current->id, s) == 0 && current->scope <= currentScope) {
+                  return current;
+            }
+            current = current->next;
+      }
+      return NULL; //se non trova la variabile
+}
+
+char* floatToString(float f);
+
+//crea una variabilee temporanea, senza salvarla nella Symbol Table
+Variable toVar(char* stringa, float number) {
+    Variable var;
+    var.id = strdup("");    //temporaneo
+    var.scope = 0;          //non ha scope
+    if (stringa != NULL){
+        var.type = "string";    //se è stringa, risultato è stringa
+        var.value.stringValue = strdup(stringa);
+    } else {
+        var.type = "float";     //altrimenti è un numero
+        var.value.floatValue = number;
+    }
+    var.next = NULL;
+    return var;
+}
+
+Variable varOp(Variable a, Variable b, char op) {
+    Variable result;
+    result.id = "";
+    result.scope = -1;
+
+    //Se uno dei 2 è stringa, funziona solo la concatenazione +
+    if (strcmp(a.type, "string") == 0 || strcmp(b.type, "string") == 0) {
+        if (op != '+') {
+            yyerror("Errore: con stringhe va solo il + per concatenare");
+        }
+        // Se uno dei due è float, lo converte in stringa
+        char* aStr = (strcmp(a.type, "float") == 0) ? floatToString(a.value.floatValue) : a.value.stringValue;
+        char* bStr = (strcmp(b.type, "float") == 0) ? floatToString(b.value.floatValue) : b.value.stringValue;
+
+        result.type = "string";
+        result.value.stringValue = malloc(strlen(aStr) + strlen(bStr) + 1);
+        strcpy(result.value.stringValue, aStr);
+        strcat(result.value.stringValue, bStr);
+        return result;
+    }
+
+    //Se entrambi float fa operazioni aritmetiche
+    if (strcmp(a.type, "float") == 0 && strcmp(b.type, "float") == 0) {
+        result.type = "float";
+        switch(op) {
+            case '+':
+                result.value.floatValue = a.value.floatValue + b.value.floatValue;
+                break;
+            case '-':
+                result.value.floatValue = a.value.floatValue - b.value.floatValue;
+                break;
+            case '*':
+                result.value.floatValue = a.value.floatValue * b.value.floatValue;
+                break;
+            case '/':
+                if (b.value.floatValue == 0)
+                    yyerror("Errore: divisione per zero");
+                result.value.floatValue = a.value.floatValue / b.value.floatValue;
+                break;
+            default:
+                yyerror("Errore: operatore non valido. Scegli tra +, -, *, /");
+        }
+        return result;
+    }
+
+    //Se non è ne float ne string
+    yyerror("Errore: tipi non compatibili");    //per evitare possibili errori
+    return result;
+}
+
+Variable getValue(Variable val) {
+    return val;
+}
+
+void addVariable(char* type, char* name, float numero, char* stringa, int scope) {
+    //assegna memoria per la nuova variabile
+    Variable* nuova = malloc(sizeof(Variable));
+    if (!nuova) {
+        yyerror("Errore: allocazione fallita");
+        exit(1);
+    }
+
+    //Assegna tipo, nome e scope
+    nuova->type = strdup(type);
+    nuova->id = strdup(name);
+    nuova->scope = scope;
+    nuova->next = NULL;
+
+    //Assegna il valore in base al tipo (float o string)
+    if (strcmp(type, "float") == 0) {
+        nuova->value.floatValue = numero;
+    } else if (strcmp(type, "string") == 0) {
+        nuova->value.stringValue = strdup(stringa);
+    } else {
+        yyerror("Errore: tipo non riconosciuto, dev'essere float o string");
+    }
+
+    nuova->next = NULL;
+
+    //aggiunge la variabile alla fine della lista / Symbol Table
+    if (head == NULL) {
+    head = nuova;
+    tail = nuova;
+    } else {
+        tail->next = nuova;
+        tail = nuova;
+    }
+
+}
+
+
+void changeValue(Variable* v, Variable newVal) {
+    // dummy
+}
+
+void printValue(Variable* v) {
+    if (strcmp(v->type, "float") == 0)
+        printf("%.2f\n", v->value.floatValue);
+    else
+        printf("%s\n", v->value.stringValue);
+}
+
+float getFloatValue(struct Variable v) {
+    if (strcmp(v.type, "float") == 0) {
+        return v.value.floatValue;
+    }
+    return 0.0;
+}
+
+
+char* getStringValue(Variable v) {
+    return v.value.stringValue;
+}
+
+void printSymbolTable(void) {
+    // dummy
+}
+
+void outOfBoundRemove(void) {
+    // dummy
+}
+
+char** newParamList(char* s) {
+    return NULL;
+}
+
+char** appendParam(char** list, char* s) {
+    return NULL;
+}
+
+Variable* callFunction(char* name, NodoArgomento* lista) {
+    return NULL;
+}
+
+void yyerror(const char *s) {
+    fprintf(stderr, "Error: %s\n", s);
+}
+
+char* floatToString(float f) {
+    char* buffer = malloc(32);    // Allocate memory for the string
+    snprintf(buffer, 32, "%.2f", f);    // Format the float to a string with 2 decimal places
+    return buffer;
+}
+
+int main() {
+    output = malloc(CHAR_MAX);
+    strcpy(output, "");
+    yyparse();
+    return 0;
+}

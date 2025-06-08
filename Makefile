@@ -1,4 +1,6 @@
 all:
-	flex -l Cine-lex.l;
-	bison -vd CineScripty.y;
-	gcc calc-ambiguo.tab.c -ll -o lab2
+	flex Cine-lex.l
+	bison -d CineScripty.y
+	gcc lex.yy.c CineScripty.tab.c -o cinescript -lm
+
+
