@@ -35,23 +35,27 @@ string \"([^\\\"]*)\"
 ")"     {return ')';}
 "{"     {return '{';}
 "}"     {return '}';}
+"["	{return '[';}
+"]"	{return ']';}
 
-"if"    {return IF;}
-"se"    {return IF;}
-"while" {return WHILE;}
+"if"     {return IF;}
+"se"     {return IF;}
+"while"  {return WHILE;}
 "mentre" {return WHILE;}
 
+"film"	    {return FUNZIONE;}
 "azione"    {return AZIONE;}
 "dramma"    {return DRAMMA;}
 "scena"     {return SCENA;}
 "riprendi"  {return RIPRENDI;}
 "finale"    {return FINALE;}
 "taglia"    {return TAGLIA;}
+"ritorna"   {return RETURN;}
 "string"    {yylval.lexeme = "string"; return STRING;}
 "float"     {yylval.lexeme = "float"; return FLOAT;}
 
 {id}        {yylval.lexeme = strdup(yytext); return ID;}
 {num}       {yylval.value = atof(yytext); return NUM;}
-.       {/* ignora altri caratteri*/}
+.           {/* ignora altri caratteri*/}
 
 %%
