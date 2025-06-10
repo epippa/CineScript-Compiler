@@ -19,6 +19,7 @@ string  \"([^"]*)\"
 
 [ \t\r]+   { /* ignora spazi bianchi */ }
 \n         {/* ignora nuove linee */}
+"@"[^\n]*   { /* commento */ }
 
 "=="    {return EQUAL;}
 "<"     {return LESS;}
@@ -35,26 +36,21 @@ string  \"([^"]*)\"
 ")"     {return ')';}
 "{"     {return '{';}
 "}"     {return '}';}
-"["     {return '[';}
-"]"     {return ']';}
 
 "if"     {return IF;}
 "se"     {return IF;}
 "while"  {return WHILE;}
 "mentre" {return WHILE;}
 
-@.*         {return BATTUTA;}   /* commento */
-"film"      {return FILM;}  /* funzione */
 "azione"    {return AZIONE;}    /* dramma */
 "dramma"    {return DRAMMA;}    /* string */
 "scena"     {return SCENA;}     /* per stampare (come dire "mostrare") */
 "riprendi"  {return RIPRENDI;}  /* riassegna */
-"taglia"    {return TAGLIA;}    /* quit */
 "finale"    {return FINALE;}    /* output */
-"registra"  {return REGISTRA;}  /* return */
+"cast"      {return CAST;}      /* print Symbol Table */
+"zoom"      {return ZOOM;}      /* stampa float per intero */
 
-"string"    {yylval.lexeme = "string"; return STRING;}
-"float"     {yylval.lexeme = "float"; return FLOAT;}
+\"[^\"]*\"    {yylval.lexeme = strdup(yytext); return STRING;}
 
 {id}        {yylval.lexeme = strdup(yytext); return ID;}
 {num}       {yylval.value = atof(yytext); return NUM;}
