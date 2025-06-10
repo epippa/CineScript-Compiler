@@ -1,183 +1,152 @@
-# CineScript 🎥
+# 🎬 CineScript
 
-**CineScript** è un linguaggio di programmazione personalizzato ispirato al mondo del cinema e della sceneggiatura. Il suo obiettivo è rendere l’esperienza di programmazione più narrativa e coinvolgente, soprattutto per chi si avvicina per la prima volta al coding. Le istruzioni, i blocchi di codice e le strutture logiche assumono nomi e forme tipiche della regia cinematografica, come `SCENA`, `AZIONE`, `RIPRENDI`, `DRAMMA`, `FINALE` e così via.
+**CineScript** è un linguaggio di programmazione minimalista ispirato al mondo del cinema. L'intero linguaggio è costruito attorno a metafore cinematografiche, rendendo la programmazione simile alla scrittura di un copione.
 
-Questo progetto è stato interamente scritto in **C**, utilizzando **FLEX** per il lexer e **BISON** per il parser. L'esecuzione avviene interpretando uno script `.cinema` (o qualsiasi altro file di input testuale) con il programma `cinescript` compilato.
+## 📜 Descrizione del Progetto
 
----
+CineScript supporta:
 
-## 📆 Contenuto del progetto
+- Dichiarazione e gestione di variabili `float` e `string`
+- Operazioni aritmetiche con priorità e parentesi
+- Concatenazione di stringhe
+- Blocchi condizionali `if` (`se`) e cicli `while` (`mentre`)
+- Scope management (variabili valide solo all’interno di un blocco)
+- Funzioni predefinite come `somma(x, y)`
+- Comandi speciali per stampare e analizzare variabili
 
-* `CineScripty.y` — Parser Bison (YACC)
-* `Cine-lex.l` — Lexer Flex
-* `Makefile` — Script per la compilazione
-* `test.cinema` — Esempio di programma CineScript
-* `README.md` — Documentazione dettagliata (questo file)
+Tutti i comandi utilizzano una sintassi che richiama la terminologia cinematografica, rendendolo unico e didattico.
 
----
+## 🧠 Comandi Supportati
 
-## ⚡ Installazione e Compilazione
+| Comando      | Descrizione                                       |
+|--------------|----------------------------------------------------|
+| `azione`     | Dichiara una variabile `float`                    |
+| `dramma`     | Dichiara una variabile `string`                   |
+| `riprendi`   | Riassegna il valore a una variabile già dichiarata |
+| `scena`      | Stampa il contenuto di una variabile              |
+| `zoom`       | Stampa il contenuto `float` in formato esteso     |
+| `cast`       | Stampa la Symbol Table                            |
+| `finale`     | Termina il programma con messaggio finale         |
+| `taglia`     | Interrompe immediatamente l’esecuzione            |
 
-Compila il progetto con i seguenti comandi:
+## ✍️ Sintassi di Base
 
-```bash
+### Dichiarazione
+
+```
+azione x = 5
+dramma saluto = "Ciao"
+```
+
+### Operazioni
+
+```
+azione somma = x + 3 * 2
+azione media = (x + y) / 2
+dramma messaggio = saluto + " mondo"
+```
+
+### Riassegnazione
+
+```
+riprendi x = x + 1
+```
+
+### Blocchi
+
+```
+se (x > 5) {
+    scena "Maggiore di 5"
+}
+
+mentre (x > 0) {
+    scena x
+    riprendi x = x - 1
+}
+```
+
+## 🧮 Funzioni Predefinite
+
+Attualmente è disponibile:
+
+```
+azione risultato = somma(3.0, 4.5)
+```
+
+Le funzioni accettano variabili o numeri. In futuro è possibile aggiungerne altre.
+
+## 🛠️ Compilazione
+
+```
 flex Cine-lex.l
 bison -d CineScripty.y
 gcc lex.yy.c CineScripty.tab.c -o cinescript -lm
 ```
 
-Oppure usa direttamente:
+## ▶️ Esecuzione
 
-```bash
-make
 ```
-
-Esegui uno script con:
-
-```bash
 ./cinescript < test.cinema
 ```
 
----
-
-## 🌐 Sintassi e Comandi
-
-### Dichiarazione variabili
-
-* `AZIONE x = 3.5` → dichiarazione di variabile `float`
-* `DRAMMA titolo = "Ciao"` → dichiarazione di variabile `string`
-
-### Riassegnazione
-
-* `RIPRENDI x = 7.2`
-
-### Stampa
-
-* `SCENA x` → stampa il valore della variabile
-
-### Commenti
-
-* I commenti iniziano con `@` o possono essere riconosciuti tramite il token `BATTUTA`
-
-### Fine programma
-
-* `FINALE` → stampa finale e termina il programma
-* `TAGLIA` → termina senza output
-
-### Operazioni
-
-* `+`, `-`, `*`, `/` per `float`
-* `+` per concatenazione di stringhe
-* Conversione implicita da `float` a `string` se necessario
-
-### Controlli logici
-
-* `IF`, `WHILE` con scope gestito internamente tramite variabile `currentScope`
-
-### Funzioni
-
-* Dichiarazione con `FILM nome(...) { ... REGISTRA risultato }`
-* Invocazione con `nome(...)`
-
----
-
-## 🔀 Internals: come funziona
-
-### Symbol Table (Variabili)
-
-Struttura collegata `struct Variable` con:
-
-* `id`, `type` ("float"/"string"), `scope`
-* `value` come union tra `floatValue` e `stringValue`
-
-### Lista Funzioni
-
-`struct Function` per registrare:
-
-* nome funzione, lista parametri, valore di ritorno e puntatore alla funzione successiva
-
-### Principali funzioni di supporto
-
-#### `Variable toVar(char* stringa, float numero)`
-
-Restituisce una variabile temporanea, utile per rappresentare letterali numerici o stringhe all'interno delle espressioni.
-
-#### `Variable varOp(Variable a, Variable b, char op)`
-
-Esegue un'operazione tra due variabili. Supporta:
-
-* Operazioni aritmetiche se entrambe `float`
-* Concatenazione stringhe se almeno una delle due è `string`
-* Conversione implicita da `float` a `string`
-
-#### `void addVariable(...)`
-
-Aggiunge una nuova variabile alla symbol table, allocando dinamicamente memoria. Gestisce correttamente il tipo e lo scope.
-
-#### `Variable* lookup(char* s)`
-
-Restituisce un puntatore alla variabile con nome `s`, rispettando lo scope.
-
-#### `char* floatToString(float f)`
-
-Converte un numero `float` in una stringa con due cifre decimali. Utile per concatenazioni.
-
-#### `void printValue(Variable* v)`
-
-Stampa a schermo una variabile: `%.2f` per float, altrimenti stampa la stringa.
-
----
-
-## 🔹 Esempio completo
-
-```cine
-@ Somma e stampa
-AZIONE a = 5
-AZIONE b = 2.5
-AZIONE somma = a + b
-SCENA somma
-
-@ Concatenazione
-DRAMMA messaggio = "Totale: " + somma
-SCENA messaggio
-
-FINALE
-```
-
-Output:
+## 🧪 Esempio di Test (test.cinema)
 
 ```
-7.50
-Totale: 7.50
+azione a = 5
+azione b = 3.2
+azione somma = somma(a, b)
+scena somma
 
- ### OUTPUT: ###
+dramma s1 = "Ciao "
+dramma s2 = "Mondo"
+dramma saluto = s1 + s2
+scena saluto
+
+azione x = 9
+azione y = 2
+azione z = (x + y) / 2
+scena z
+
+se (a > b) {
+    scena "Condizione vera"
+}
+
+mentre (x > 0) {
+    scena x
+    riprendi x = x - 2
+}
+
+cast
+finale
 ```
 
----
+## 📦 Struttura Interna
 
-## 🚫 Funzionalità da completare
+### Symbol Table
 
-* [ ] `changeValue()` → modifica il valore di una variabile esistente
-* [ ] `callFunction()` → esecuzione reale di una funzione utente
-* [ ] `printSymbolTable()` → stampa la tabella delle variabili
-* [ ] `outOfBoundRemove()` → rimuove le variabili locali a blocchi `IF` o `WHILE` terminati
-* [ ] `newParamList()` / `appendParam()` → costruzione della lista di parametri formali
+Una lista concatenata di variabili definite nel programma, ognuna contenente:
 
----
+- Tipo (`float` o `string`)
+- Nome identificatore
+- Scope
+- Valore (numerico o stringa)
 
-## 📈 Obiettivi futuri
+### Scope
 
-* Valutazione delle espressioni nelle funzioni utente
-* Supporto alle funzioni con parametri
-* Estensione con `SCENEGGIATURA` per importare script esterni
-* Debugger integrato
+Ogni blocco `{}` crea un nuovo livello di scope. Le variabili dichiarate al suo interno vengono rimosse al termine del blocco.
 
----
+## ✅ Funzionalità Implementate
+
+- [x] Dichiarazione e riassegnazione variabili
+- [x] Operazioni aritmetiche e concatenazioni
+- [x] Gestione dello scope
+- [x] Blocchi `if` e `while`
+- [x] Funzione `somma(x, y)`
+- [x] Stampa semplice e completa
+- [x] Stampa della Symbol Table
 
 ## 👤 Autore
 
-**Emanuele Pippa** – Progetto accademico, 2025.
-
-CineScript è pensato per essere un linguaggio narrativo, accessibile, e potenzialmente estendibile per uso didattico o ludico.
-
-> "Ogni programma è una storia: raccontala con una sceneggiatura."
+**Emanuele Pippa**  
+Progetto universitario basato su *Compilers - Principles, Techniques, and Tools (Dragon Book)*  
+Libera Università di Bolzano - Corso Compilatori e Linguaggio Formale
