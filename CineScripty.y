@@ -1,5 +1,9 @@
-// @EMANUELE PIPPA
+/* ============================================== */
+/* CineScript - Copyright © 2025 Emanuele Pippa   */
+/* Licenza: CC BY-NC 4.0                          */
+/* ============================================== */
 // CineScript - Linguaggio di programmazione basato sulla sceneggiatura
+
 
 /* definitions */
 %{

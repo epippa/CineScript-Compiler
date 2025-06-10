@@ -1,4 +1,8 @@
-/* @Emanuele Pippa */
+/* ============================================== */
+/* CineScript - Copyright © 2025 Emanuele Pippa   */
+/* Licenza: CC BY-NC 4.0                          */
+/* ============================================== */
+
 
 %option noyywrap
 %option case-insensitive
