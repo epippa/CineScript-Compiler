@@ -14,24 +14,11 @@ Alle seguenti condizioni:
 
 L’uso commerciale del codice, diretto o indiretto (inclusi corsi, software venduti, progetti retribuiti), è vietato salvo consenso esplicito dell’autore.
 
+Eccezione Bison:
+Il file `CineScripty.tab.c`, generato da GNU Bison, include una "special exception" che consente la distribuzione dell'opera più ampia (questo progetto) sotto termini diversi dalla GPL, purché l'opera non sia essa stessa un generatore di parser.
+
 Licenza completa disponibile:
 - Testo leggibile: https://creativecommons.org/licenses/by-nc/4.0/deed.it
 - Testo legale: https://creativecommons.org/licenses/by-nc/4.0/legalcode
 
-
-Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)
-
-Copyright © 2025 Emanuele Pippa
-
-This work is licensed under a Creative Commons license. You are free to:
-
-- Share — copy and redistribute the material in any medium or format
-- Adapt — remix, transform, and build upon the material
-
-Under the following terms:
-
-- Attribution — you must give appropriate credit.
-- NonCommercial — you may not use the material for commercial purposes without permission.
-
-Full license (human-readable):  
-https://creativecommons.org/licenses/by-nc/4.0/
+Per richieste di utilizzo commerciale o collaborazione, contattare direttamente l'autore.

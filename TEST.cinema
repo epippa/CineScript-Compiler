@@ -1,8 +1,9 @@
 azione a = 5
 azione b = 3.20
-azione somma = somma(a, b)
-scena somma
-
+azione sum = somma(a, b)
+scena sum
+riprendi sum = 7
+scena sum
 dramma s1 = "Ciao "
 dramma s2 = "Mondo"
 dramma saluto = s1 + s2
@@ -14,13 +15,13 @@ azione z = (x + y) / 2.0
 scena z
 
 if (a > b) {
-    scena "Condizione vera"
+   scena "Condizione vera"
 }
 
-mentre (x > 0) {
-    scena x
+@mentre (x > 0) {
+ @   scena x
     riprendi x = x - 2
-}
+@}
 
 azione m = 7.5
 azione n = 2.5
@@ -30,8 +31,8 @@ scena prodotto
 dramma messaggio = "Valore prodotto: " + prodotto
 scena messaggio
 
-riprendi somma = somma + 1
-scena somma
+@riprendi somma = somma + 1
+@scena somma
 
 cast
 finale

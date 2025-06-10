@@ -12,7 +12,7 @@
 
 typedef struct Variable Variable;
 
-//Symbol Table variabili
+//Symbol Table
 struct Variable {
     char* type; //float o string
     char* id;   //nome della variabile
@@ -44,18 +44,14 @@ float getFloatValue(Variable v);
 char* getStringValue(Variable temp);
 void printSymbolTable(void);
 void removeTemporalVariableOutOfBlock(void);
-Variable* eseguiFunzione(char* nome, Variable* a, Variable* b, int count);
+Variable* eseguiFunzione(char* nome, Variable* a, Variable* b);
+int esegui_blocco = 1;
 %}
 
 %union{
     char* lexeme;   //id, string
     float value;    //num
     struct Variable* variabile;
-    struct {
-        struct Variable* arg1;
-        struct Variable* arg2;
-        int count;
-    } arglist;
 }
 
 //dichiazione token riconosciuti dal lexer
@@ -64,13 +60,12 @@ Variable* eseguiFunzione(char* nome, Variable* a, Variable* b, int count);
 %token <lexeme> ID STRING
 
 //Non terminali
-%type <lexeme> com_expr compare
-%type <variabile> expr stmt
-%type <arglist> lista_expr
+%type <value> com_expr compare
+%type <variabile> expr 
 
 %left '+' '-'
 %left '*' '/'
-%left GREAT LESS EQUAL GREATQ LESSQ NOTEQ
+%left GREAT LESS EQUAL GREATQ LESSQ NOTEQ MOD
 
 %start prog
 
@@ -86,48 +81,42 @@ prog : stmtLi
      | stmtLi FINALE  {printf("\n### Fine Copione ###\n"); exit(0);}
      ;
 
-//lista recorsiva di comandi/istruzioni
-stmtLi : stmt stmtLi  { }
-       | if_stmt stmtLi    { }
-       | while_stmt stmtLi { }
-       | CAST       {printSymbolTable();} //stampa Symbol Table
-       |            { } /*empty*/
-       ;
+stmtLi : lista_stmt ;
 
-while_stmt : WHILE com_expr '{' brace_statement
+lista_stmt : stmt lista_stmt
+           |
            ;
 
-if_stmt : IF com_expr '{' brace_statement
-        ;
-
-com_expr : '(' compare ')' { currentScope++; }
-         ;
-
-//codice tra graffe
-brace_statement : stmt brace_statement { }
-                | if_stmt brace_statement { }
-                | while_stmt brace_statement { }
-                | '}'   {removeTemporalVariableOutOfBlock();} /*elimina variabili dichiarate con il current scope*/
-                ;                                             /*rimuove le variabili temporanee uscendo da un blocco*/
-
+com_expr : '(' compare ')' {
+    esegui_blocco = $2; //se è true, esegue il blocco
+    currentScope++;
+    $$ = $2; //ritorna risultato
+};
+                                                                             
 //confronto
-compare : expr EQUAL expr   { }
-        | expr NOTEQ expr   { }
-        | expr GREAT expr   { }
-        | expr GREATQ expr  { }
-        | expr LESS expr    { }
-        | expr LESSQ expr   { }
+compare : expr EQUAL expr   {$$=(getFloatValue(*$1) == getFloatValue(*$3));}
+        | expr NOTEQ expr   {$$=(getFloatValue(*$1) != getFloatValue(*$3));}
+        | expr GREAT expr   {$$=(getFloatValue(*$1) > getFloatValue(*$3));}
+        | expr GREATQ expr  {$$=(getFloatValue(*$1) >= getFloatValue(*$3));}
+        | expr LESS expr    {$$=(getFloatValue(*$1) < getFloatValue(*$3));}
+        | expr LESSQ expr   {$$=(getFloatValue(*$1) <= getFloatValue(*$3));}
+//      | expr MOD expr     {$$=(fmod(getFloatValue(*$1), getFloatValue(*$3)) == 0.0); } //modulo, ritorna true se divisibile
         ;
 
 //istruzioni
-//$$ :   $1   $2   $3  $4
-stmt : AZIONE ID '=' expr   {addVariable("float", $2, getFloatValue(*$4), NULL, currentScope);}   //assegnazione variabile float
-     | DRAMMA ID '=' expr   {addVariable("string", $2, 0.0, getStringValue(*$4), currentScope);}  //assegnazione variabile stringa
-     | RIPRENDI ID '=' expr {changeValue(lookup($2), *$4);}     //riassegnazione variabili
-     | SCENA ID             {printValue(lookup($2));}           //stampa variabile
-     | ZOOM ID              {printComplete(lookup($2));}        //stampa variabile per intero
+//$$ :   $1   $2  $3  $4
+stmt : AZIONE ID '=' expr   {if(esegui_blocco)addVariable("float", $2, getFloatValue(*$4), NULL, currentScope);}   //assegnazione variabile float
+     | DRAMMA ID '=' expr   {if(esegui_blocco)addVariable("string", $2, 0.0, getStringValue(*$4), currentScope);}  //assegnazione variabile stringa
+     | RIPRENDI ID '=' expr {if(esegui_blocco)changeValue(lookup($2), *$4);}     //riassegnazione variabili
+     | ZOOM ID              {if(esegui_blocco)printComplete(lookup($2));}        //stampa variabile per intero
+     | SCENA expr           {if(esegui_blocco) printValue($2);}     //stampa stringa
+     | IF com_expr '{' brace_statement
+     | WHILE com_expr '{' brace_statement
+     | CAST                 {printSymbolTable();}
      ;
 
+brace_statement : lista_stmt '}' { removeTemporalVariableOutOfBlock(); esegui_blocco = 1; } ; //elimina variabili dichiarate con il current scope
+                                                                                              //rimuove le variabili temporanee uscendo da un blocco IF/WHILE                                                                
 //expressions
 expr : ID              {$$ = lookup($1);}
      | NUM             {Variable temp = toVar(NULL, $1); $$ = malloc(sizeof(temp)); *$$ = temp;}
@@ -137,17 +126,7 @@ expr : ID              {$$ = lookup($1);}
      | expr '*' expr   {Variable temp = varOp(*$1, *$3, '*'); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | expr '/' expr   {Variable temp = varOp(*$1, *$3, '/'); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | '(' expr ')'    {$$ = $2;} //espressione tra parentesi
-     | ID '(' lista_expr ')' {if ($3.count == 2) {Variable* result = eseguiFunzione($1, $3.arg1, $3.arg2, $3.count);$$ = result;
-                                } else if ($3.count == 1) {Variable* result = eseguiFunzione($1, $3.arg1, NULL, $3.count);$$ = result;
-                                } else {Variable* result = eseguiFunzione($1, NULL, NULL, 0);$$ = result;}
-}
-
-     ;
-
-lista_expr : expr { $$.arg1 = $1; $$.arg2 = NULL; $$.count = 1;}
-           | expr ',' expr { $$.arg1 = $1; $$.arg2 = $3; $$.count = 2;}
-           | {$$.arg1 = NULL; $$.arg2 = NULL; $$.count = 0;}
-           ;
+     | ID '(' expr ',' expr ')'     {$$ = eseguiFunzione($1, $3, $5);} //somma(a,b)
 
            
 %%   /* routines */
@@ -155,13 +134,13 @@ lista_expr : expr { $$.arg1 = $1; $$.arg2 = NULL; $$.count = 1;}
 //trova variabile nella symbol table
 Variable* lookup(char* ID) {
     Variable* current = head;
-      while (current != NULL) {
-            if (strcmp(current->id, ID) == 0 && current->scope <= currentScope) {
-                  return current;
-            }
-            current = current->next;
-      }
-      return NULL; //se non trova la variabile
+        while (current != NULL) {
+                if (strcmp(current->id, ID) == 0 && current->scope <= currentScope) {
+                    return current;
+                }
+                current = current->next;
+        }
+        return NULL; //se non trova la variabile
 }
 
 char* floatToString(float f);
@@ -378,19 +357,18 @@ void removeTemporalVariableOutOfBlock(void) {
 }
 
 //funzioni, per ora ho messo solo la somma
-Variable* eseguiFunzione(char* nome, Variable* a, Variable* b, int count) {
-    if (strcmp(nome, "somma") == 0 && count == 2) {
-        float val1 = getFloatValue(*a);
-        float val2 = getFloatValue(*b);
+Variable* eseguiFunzione(char* nome, Variable* a, Variable* b) {
+    if (strcmp(nome, "somma") == 0) {
+        float first = getFloatValue(*a);
+        float second = getFloatValue(*b);
         Variable* res = malloc(sizeof(Variable));
-        *res = toVar(NULL, val1 + val2);
+        *res = toVar(NULL, first + second);
         return res;
     }
 
     yyerror("Funzione non trovata");
     return NULL;
 }
-
 
 void yyerror(const char *s) {
     fprintf(stderr, "Error: %s\n", s);

@@ -27,6 +27,7 @@ string  \"([^"]*)\"
 "<="    {return LESSQ;}
 ">="    {return GREATQ;}
 "!="    {return NOTEQ;}
+"%"     {return MOD;}
 "="     {return '=';}
 "+"     {return '+';}
 "-"     {return '-';}
@@ -36,6 +37,7 @@ string  \"([^"]*)\"
 ")"     {return ')';}
 "{"     {return '{';}
 "}"     {return '}';}
+","     {return ',';}   /*sennò non mi va somma(a,b) */
 
 "if"     {return IF;}
 "se"     {return IF;}
@@ -55,5 +57,4 @@ string  \"([^"]*)\"
 {id}        {yylval.lexeme = strdup(yytext); return ID;}
 {num}       {yylval.value = atof(yytext); return NUM;}
 .           {/* ignora altri caratteri*/}
-
 %%
