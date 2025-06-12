@@ -1,0 +1,19 @@
+Da Fare:
+- implementare calcoli con segno negativo. al momento va solo se l'operazione è tra due numeri, es 2*(3-4), ma non va nel caso di 2*(-4)
+- s0 risulta come float, ma dovrebbe essere una stringa
+
+Fatti:
+azione
+dramma
+scena
+finale
+cast
+zoom
+riprendi
++, -, /, *, ( ), %
+somma(a,b)
+IF { }, senza else perchè non ho usato i Jump
+divisione(a,b)
+differenza(a,b)
+prodotto(a,b)
+WHILE, però non funziona come un while-loop perchè non ho implementato i salti condizionali per i loop

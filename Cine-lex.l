@@ -54,7 +54,9 @@ num     {digit}+(\.{digit}+)?
 "cast"      {return CAST;}      /* print Symbol Table */
 "zoom"      {return ZOOM;}      /* stampa float per intero */
 
-\"[^\"]*\"  {yylval.lexeme = strdup(yytext); return STRING;}
+\"[^"]*\" {yylval.lexeme = strdup(yytext + 1);              // Rimuove la prima virgolette
+           yylval.lexeme[strlen(yylval.lexeme) - 1] = '\0'; // Rimuove l'ultima virgolette
+           return STRING;}
 {id}        {yylval.lexeme = strdup(yytext); return ID;}
 {num}       {yylval.value = atof(yytext); return NUM;}
 .           {/* ignora altri caratteri*/}

@@ -18,10 +18,10 @@ if (a > b) {
    scena "Condizione vera"
 }
 
-@mentre (x > 0) {
- @   scena x
+mentre (x > 0) {
+    scena x
     riprendi x = x - 2
-@}
+}
 
 azione m = 7.5
 azione n = 2.5

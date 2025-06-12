@@ -66,7 +66,7 @@ Variable* eseguiFunzione(char* nome, Variable* a, Variable* b);
 %type <variabile> expr
 
 %left '+' '-'
-%left '*' '/'
+%left '*' '/' '%'
 %left GREAT LESS EQUAL GREATQ LESSQ NOTEQ MOD
 
 %start prog
@@ -101,7 +101,7 @@ compare : expr EQUAL expr   {$$=(getFloatValue(*$1) == getFloatValue(*$3));}
 //istruzioni
 //$$ :   $1   $2  $3  $4
 stmt : AZIONE ID '=' expr   {addVariable("float", $2, getFloatValue(*$4), NULL, currentScope);}     //assegnazione variabile float
-     | DRAMMA ID '=' expr   {addVariable("string", $2, 0.0, getStringValue(*$4), currentScope);}    //assegnazione variabile stringa
+     | DRAMMA ID '=' expr   {if(strcmp($4->type, "string") == 0)addVariable("string", $2, 0.0, getStringValue(*$4), currentScope); else yyerror("Non puoi assegnare float a una stringa!");}
      | SCENA expr           {if (esegui_blocco == 1) printValue($2);}       //stampa stringa 
      | RIPRENDI ID '=' expr {Variable* temp = lookup($2); if (temp && esegui_blocco) changeValue(temp, *$4);}   //riassegnazione variabili
      | ZOOM ID              {Variable* temp = lookup($2); if (temp && esegui_blocco) printComplete(temp);}      //stampa variabile per intero
@@ -243,7 +243,6 @@ void addVariable(char* type, char* name, float numero, char* stringa, int scope)
     nuova->type = strdup(type);
     nuova->id = strdup(name);
     nuova->scope = scope;
-    nuova->next = NULL;
 
     //Assegna il valore in base al tipo (float o string)
     if (strcmp(type, "float") == 0) {
@@ -322,7 +321,7 @@ void printComplete(Variable* var) {
 }
 
 void printSymbolTable(void) {
-    printf("\n\n### Symbol Table ###\n");
+    printf("\n\n### Symbol Table ###\n\n");
     Variable* current = head;
     while (current != NULL) {
         printf("ID: %s (Type: %s, Scope: %d, ", current->id, current->type, current->scope);
@@ -405,4 +404,4 @@ int main() {
     strcpy(output, "");
     yyparse();
     return 0;
-}}
+}
