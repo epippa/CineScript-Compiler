@@ -1,9 +1,14 @@
+@ Esempio completo di CineScript
 azione a = 5
 azione b = 3.20
-azione sum = somma(a, b)
-scena sum
-riprendi sum = 7
-scena sum
+azione somma1 = somma(a, b)
+azione per = a % b
+scena somma1
+scena per
+
+riprendi somma1 = 7
+scena somma1
+
 dramma s1 = "Ciao "
 dramma s2 = "Mondo"
 dramma saluto = s1 + s2
@@ -14,13 +19,15 @@ azione y = 2
 azione z = (x + y) / 2.0
 scena z
 
-if (a > b) {
-   scena "Condizione vera"
+IF (a < b) {
+  scena "Condizione vera"
+  AZIONE e = 7
+  SCENA e
 }
 
-mentre (x > 0) {
-    scena x
-    riprendi x = x - 2
+IF (a > b) {
+  AZIONE g = 0.3
+  SCENA g
 }
 
 azione m = 7.5
@@ -31,8 +38,27 @@ scena prodotto
 dramma messaggio = "Valore prodotto: " + prodotto
 scena messaggio
 
-@riprendi somma = somma + 1
-@scena somma
+azione negativo = -5
+scena negativo
+
+azione rad = radiceQ(16)
+scena rad
+
+azione assoluto = abs(-8.5)
+scena assoluto
+
+azione pot = potenza(2, 4)
+scena pot
+
+azione pi = piGreco
+scena pi
+
+azione diff = differenza(10, 3)
+azione div = diviso(12, 4)
+scena diff
+scena div
 
 cast
+sceneggiatura
+
 finale
