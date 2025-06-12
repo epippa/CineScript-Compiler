@@ -4,7 +4,6 @@
 /* ============================================== */
 // CineScript - Linguaggio di programmazione basato sulla sceneggiatura
 
-
 /* definitions */
 %{
 #include <stdlib.h>
@@ -20,7 +19,7 @@ typedef struct Variable Variable;
 struct Variable {
     char* type; //float o string
     char* id;   //nome della variabile
-    int scope;  //livello profondità dentro IF/WHILE
+    int scope;  //livello profondità dentro IF
     union { 
         float floatValue;
         char* stringValue;
@@ -30,6 +29,7 @@ struct Variable {
 
 //variabili globali
 int currentScope = 0;
+int esegui_blocco = 1;  //se è 1, esegue le azioni semantiche
 Variable* head = NULL;
 Variable* tail = NULL;
 char* output;
@@ -47,9 +47,7 @@ void printComplete(Variable* var);
 float getFloatValue(Variable v);
 char* getStringValue(Variable temp);
 void printSymbolTable(void);
-void removeTemporalVariableOutOfBlock(void);
 Variable* eseguiFunzione(char* nome, Variable* a, Variable* b);
-int esegui_blocco = 1;
 %}
 
 %union{
@@ -59,13 +57,13 @@ int esegui_blocco = 1;
 }
 
 //dichiazione token riconosciuti dal lexer
-%token IF WHILE DRAMMA RIPRENDI SCENA FINALE AZIONE ZOOM CAST
+%token IF DRAMMA RIPRENDI SCENA FINALE AZIONE ZOOM CAST WHILE
 %token <value> NUM
 %token <lexeme> ID STRING
 
 //Non terminali
 %type <value> com_expr compare
-%type <variabile> expr 
+%type <variabile> expr
 
 %left '+' '-'
 %left '*' '/'
@@ -82,7 +80,7 @@ int esegui_blocco = 1;
 */
 
 prog : stmtLi
-     | stmtLi FINALE  {printf("\n### Fine Copione ###\n"); exit(0);}
+     | stmtLi FINALE  {printf("\n### Fine Copione ###\n\n"); exit(0);}
      ;
 
 stmtLi : lista_stmt ;
@@ -90,12 +88,6 @@ stmtLi : lista_stmt ;
 lista_stmt : stmt lista_stmt
            |
            ;
-
-com_expr : '(' compare ')' {
-    esegui_blocco = $2; //se è true, esegue il blocco
-    currentScope++;
-    $$ = $2; //ritorna risultato
-};
                                                                              
 //confronto
 compare : expr EQUAL expr   {$$=(getFloatValue(*$1) == getFloatValue(*$3));}
@@ -104,52 +96,66 @@ compare : expr EQUAL expr   {$$=(getFloatValue(*$1) == getFloatValue(*$3));}
         | expr GREATQ expr  {$$=(getFloatValue(*$1) >= getFloatValue(*$3));}
         | expr LESS expr    {$$=(getFloatValue(*$1) < getFloatValue(*$3));}
         | expr LESSQ expr   {$$=(getFloatValue(*$1) <= getFloatValue(*$3));}
-//      | expr MOD expr     {$$=(fmod(getFloatValue(*$1), getFloatValue(*$3)) == 0.0); } //modulo, ritorna true se divisibile
         ;
 
 //istruzioni
 //$$ :   $1   $2  $3  $4
-stmt : AZIONE ID '=' expr   {if(esegui_blocco)addVariable("float", $2, getFloatValue(*$4), NULL, currentScope);}   //assegnazione variabile float
-     | DRAMMA ID '=' expr   {if(esegui_blocco)addVariable("string", $2, 0.0, getStringValue(*$4), currentScope);}  //assegnazione variabile stringa
-     | RIPRENDI ID '=' expr {if(esegui_blocco)changeValue(lookup($2), *$4);}     //riassegnazione variabili
-     | ZOOM ID              {if(esegui_blocco)printComplete(lookup($2));}        //stampa variabile per intero
-     | SCENA expr           {if(esegui_blocco) printValue($2);}     //stampa stringa
-     | IF com_expr '{' brace_statement
-     | WHILE com_expr '{' brace_statement
-     | CAST                 {printSymbolTable();}
+stmt : AZIONE ID '=' expr   {addVariable("float", $2, getFloatValue(*$4), NULL, currentScope);}     //assegnazione variabile float
+     | DRAMMA ID '=' expr   {addVariable("string", $2, 0.0, getStringValue(*$4), currentScope);}    //assegnazione variabile stringa
+     | SCENA expr           {if (esegui_blocco == 1) printValue($2);}       //stampa stringa 
+     | RIPRENDI ID '=' expr {Variable* temp = lookup($2); if (temp && esegui_blocco) changeValue(temp, *$4);}   //riassegnazione variabili
+     | ZOOM ID              {Variable* temp = lookup($2); if (temp && esegui_blocco) printComplete(temp);}      //stampa variabile per intero
+     | IF com_expr '{' lista_stmt '}'     {currentScope--; esegui_blocco = 1;}  //esegui_blocco serve per decidere se eseguire o meno le azioni semantiche all'interno di un blocco
+     | WHILE com_expr '{' lista_stmt '}'  {currentScope--; esegui_blocco = 1;}  //currentScope serve per tenere traccia della profondità dello scope (per scegliere nella Symbol Table la variabile da prendere)
+     | CAST                               {if (esegui_blocco == 1) printSymbolTable();}
      ;
 
-brace_statement : lista_stmt '}' { removeTemporalVariableOutOfBlock(); esegui_blocco = 1; } ; //elimina variabili dichiarate con il current scope
-                                                                                              //rimuove le variabili temporanee uscendo da un blocco IF/WHILE                                                                
+
+com_expr : '(' compare ')' {
+    currentScope++;               // Entriamo sempre in un nuovo scope
+    esegui_blocco = $2;           // Ma eseguiamo solo se condizione vera
+    $$ = $2;
+};
+                                                                                                                                                              
 //expressions
-expr : ID              {$$ = lookup($1);}
+expr : ID              {Variable* temp = lookup($1); $$ = malloc(sizeof(Variable));
+                            if(temp == NULL){if (esegui_blocco == 1) //Siamo in un blocco e non ho trovato la variabile
+                                yyerror("Variabile non trovata"); *$$ = toVar(NULL, 0.0); //cerco la variabile nella Symbol Table. Se assente: errore, restituisco puntatore fittizio per evitare crash.
+                            } else {*$$ = *temp;}}    //Se esiste, ne ritorno il puntatore
      | NUM             {Variable temp = toVar(NULL, $1); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | STRING          {Variable temp = toVar($1, 0.0); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | expr '+' expr   {Variable temp = varOp(*$1, *$3, '+'); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | expr '-' expr   {Variable temp = varOp(*$1, *$3, '-'); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | expr '*' expr   {Variable temp = varOp(*$1, *$3, '*'); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | expr '/' expr   {Variable temp = varOp(*$1, *$3, '/'); $$ = malloc(sizeof(temp)); *$$ = temp;}
+     | expr MOD expr   {Variable temp = varOp(*$1, *$3, '%'); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | '(' expr ')'    {$$ = $2;} //espressione tra parentesi
      | ID '(' expr ',' expr ')'     {$$ = eseguiFunzione($1, $3, $5);} //somma(a,b)
-
            
 %%   /* routines */
 
-//trova variabile nella symbol table
+//trova variabile nella symbol table (con lo scope più alto possibile)
 Variable* lookup(char* ID) {
     Variable* current = head;
-        while (current != NULL) {
-                if (strcmp(current->id, ID) == 0 && current->scope <= currentScope) {
-                    return current;
-                }
-                current = current->next;
+    Variable* matched = NULL;
+    int maxScope = -1;
+
+    while (current != NULL) {
+        if (strcmp(current->id, ID) == 0 && current->scope <= currentScope) {
+            if (current->scope > maxScope) {
+                matched = current;
+                maxScope = current->scope;
+            }
         }
-        return NULL; //se non trova la variabile
+        current = current->next;
+    }
+    return matched;
 }
+
 
 char* floatToString(float f);
 
-//crea una variabilee temporanea, senza salvarla nella Symbol Table
+//crea una variabile temporanea usata solo per calcoli o valori letterali
 Variable toVar(char* stringa, float number) {
     Variable var;
     var.id = strdup("");    //temporaneo
@@ -158,7 +164,7 @@ Variable toVar(char* stringa, float number) {
         var.type = "string";    //se è stringa, risultato è stringa
         var.value.stringValue = strdup(stringa);
     } else {
-        var.type = "float";     //altrimenti è un numero
+        var.type = "float";     //se è un numero
         var.value.floatValue = number;
     }
     var.next = NULL;
@@ -168,7 +174,6 @@ Variable toVar(char* stringa, float number) {
 Variable varOp(Variable a, Variable b, char op) {
     Variable result;
     result.id = "";
-    result.scope = -1;
 
     //Se uno dei 2 è stringa, funziona solo la concatenazione +
     if (strcmp(a.type, "string") == 0 || strcmp(b.type, "string") == 0) {
@@ -183,6 +188,9 @@ Variable varOp(Variable a, Variable b, char op) {
         result.value.stringValue = malloc(strlen(aStr) + strlen(bStr) + 1);
         strcpy(result.value.stringValue, aStr);
         strcat(result.value.stringValue, bStr);
+
+        if (strcpy(a.type, "float") == 0) free(aStr);  //libera la memoria se era float (memoria allocata da floatToString)
+        if (strcmp(b.type, "float") == 0) free(bStr);  //se era string, non libera la memoria 
         return result;
     }
 
@@ -203,6 +211,9 @@ Variable varOp(Variable a, Variable b, char op) {
                 if (b.value.floatValue == 0)
                     yyerror("Errore: divisione per zero");
                 result.value.floatValue = a.value.floatValue / b.value.floatValue;
+                break;
+            case '%':
+                    result.value.floatValue = fmod(a.value.floatValue, b.value.floatValue);
                 break;
             default:
                 yyerror("Errore: operatore non valido. Scegli tra +, -, *, /");
@@ -280,6 +291,7 @@ float getFloatValue(struct Variable v) {
     if (strcmp(v.type, "float") == 0) {
         return v.value.floatValue;
     }
+    yyerror("Errore: variabile non float");
     return 0.0;
 }
 
@@ -318,55 +330,58 @@ void printSymbolTable(void) {
         if (strcmp(current->type, "float") == 0) {
             printf("Value: %.2f)\n", current->value.floatValue);    //float, lo stampa con 2 cifre decimali
         } else {
-            printf("Text: \"%s\")\n", current->value.stringValue); //string, lo stampa tra virgolette
+            printf("Text: %s)\n", current->value.stringValue); //string, lo stampa tra virgolette
         }
         current = current->next;
     }
 }
 
-//uscendo da un blocco IF/WHILE, rimuove dalla Symbol Table le variabili temporanee
-//create al suo interno, ora non più necessarie
-void removeTemporalVariableOutOfBlock(void) {
-    Variable* curr = head;
-    Variable* prev = NULL;
-
-    while (curr != NULL) {
-            //Se la variabile è in uno scope più interno o uguale all’attuale, la rimuove
-            if (curr->scope >= currentScope) {
-                Variable* toDelete = curr;  //salva il puntatore alla variabile da eliminare
-                if (prev == NULL) {     //se è la prima della lista
-                    head = curr->next;  //sposto il head
-                } else {
-                    prev->next = curr->next;
-                }
-                curr = curr->next;
-
-                //libero la memoria della variabile cancellata
-                free(toDelete->id);
-                free(toDelete->type);
-                free(toDelete);
-            } else {
-                prev = curr;
-                curr = curr->next;
-            }
-    }
-
-    //aggiorna tail
-    tail = head;
-    while (tail && tail->next != NULL) {
-        tail = tail->next;
-    }
-
-    currentScope--; //scope diminuisce perchè usciamo da un blocco
-}
-
-//funzioni, per ora ho messo solo la somma
 Variable* eseguiFunzione(char* nome, Variable* a, Variable* b) {
-    if (strcmp(nome, "somma") == 0) {
+    if (strcmp(nome, "somma") == 0) {       //somma(a, b)...
+        if(!a || !b) {
+            yyerror("Manca un argomento");
+            return NULL;
+        }
         float first = getFloatValue(*a);
         float second = getFloatValue(*b);
         Variable* res = malloc(sizeof(Variable));
         *res = toVar(NULL, first + second);
+        return res;
+    }
+
+    if (strcmp(nome, "differenza") == 0) {
+        if(!a || !b) {
+            yyerror("Manca un argomento");
+            return NULL;
+        }
+        float first = getFloatValue(*a);
+        float second = getFloatValue(*b);
+        Variable* res = malloc(sizeof(Variable));
+        *res = toVar(NULL, first - second);
+        return res;
+    }
+
+    if (strcmp(nome, "prodotto") == 0) {
+        if(!a || !b) {
+            yyerror("Manca un argomento");
+            return NULL;
+        }
+        float first = getFloatValue(*a);
+        float second = getFloatValue(*b);
+        Variable* res = malloc(sizeof(Variable));
+        *res = toVar(NULL, first * second);
+        return res;
+    }
+
+    if (strcmp(nome, "diviso") == 0) {
+        if(!a || !b) {
+            yyerror("Manca un argomento");
+            return NULL;
+        }
+        float first = getFloatValue(*a);
+        float second = getFloatValue(*b);
+        Variable* res = malloc(sizeof(Variable));
+        *res = toVar(NULL, first / second);
         return res;
     }
 
@@ -385,8 +400,9 @@ char* floatToString(float f) {
 }
 
 int main() {
+    int currentScope = 0;
     output = malloc(CHAR_MAX);
     strcpy(output, "");
     yyparse();
     return 0;
-}
+}}

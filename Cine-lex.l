@@ -3,7 +3,6 @@
 /* Licenza: CC BY-NC 4.0                          */
 /* ============================================== */
 
-
 %option noyywrap
 %option case-insensitive
 
@@ -17,13 +16,12 @@ letter  [a-zA-Z]
 digit   [0-9]
 id      {letter}({letter}|{digit})*
 num     {digit}+(\.{digit}+)?
-string  \"([^"]*)\"
 
 %%
 
 [ \t\r]+   { /* ignora spazi bianchi */ }
 \n         {/* ignora nuove linee */}
-"@"[^\n]*   { /* commento */ }
+"@"[^\n]*  { /* commento */ }
 
 "=="    {return EQUAL;}
 "<"     {return LESS;}
@@ -43,10 +41,10 @@ string  \"([^"]*)\"
 "}"     {return '}';}
 ","     {return ',';}   /*sennò non mi va somma(a,b) */
 
-"if"     {return IF;}
-"se"     {return IF;}
-"while"  {return WHILE;}
-"mentre" {return WHILE;}
+"if"    {return IF;}
+"se"    {return IF;}
+"while"      {return WHILE;}   /* Non so fare i salti condizionali, quindi x ora funziona come un if */
+"mentre"     {return WHILE;}
 
 "azione"    {return AZIONE;}    /* dramma */
 "dramma"    {return DRAMMA;}    /* string */
@@ -56,8 +54,7 @@ string  \"([^"]*)\"
 "cast"      {return CAST;}      /* print Symbol Table */
 "zoom"      {return ZOOM;}      /* stampa float per intero */
 
-\"[^\"]*\"    {yylval.lexeme = strdup(yytext); return STRING;}
-
+\"[^\"]*\"  {yylval.lexeme = strdup(yytext); return STRING;}
 {id}        {yylval.lexeme = strdup(yytext); return ID;}
 {num}       {yylval.value = atof(yytext); return NUM;}
 .           {/* ignora altri caratteri*/}
