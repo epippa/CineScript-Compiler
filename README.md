@@ -1,5 +1,10 @@
 # CineScript 🎬
 
+[![Licenza: CC BY-NC 4.0](https://licensebuttons.net/l/by-nc/4.0/88x31.png)](https://creativecommons.org/licenses/by-nc/4.0/)
+![Stato Build](https://img.shields.io/badge/build-passing-brightgreen)
+![GNU/Linux](https://img.shields.io/badge/platform-GNU%2FLinux-blue)
+![Bison/Flex](https://img.shields.io/badge/tools-Flex%2FBison-lightgrey)
+
 **CineScript** è un linguaggio di programmazione didattico ispirato alla sceneggiatura cinematografica. È stato sviluppato utilizzando **Flex** e **Bison** per illustrare i principi base dei compilatori, integrando anche concetti avanzati come gestione dello scope, tipi dinamici e strutture dati.
 
 ---

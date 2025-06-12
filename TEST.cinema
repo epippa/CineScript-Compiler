@@ -1,4 +1,3 @@
-@ Esempio completo di CineScript
 azione a = 5
 azione b = 3.20
 azione somma1 = somma(a, b)
