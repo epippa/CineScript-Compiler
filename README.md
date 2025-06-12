@@ -1,152 +1,169 @@
-# 🎬 CineScript
+# CineScript 🎬
 
-**CineScript** è un linguaggio di programmazione minimalista ispirato al mondo del cinema. L'intero linguaggio è costruito attorno a metafore cinematografiche, rendendo la programmazione simile alla scrittura di un copione.
+**CineScript** è un linguaggio di programmazione didattico ispirato alla sceneggiatura cinematografica. È stato sviluppato utilizzando **Flex** e **Bison** per illustrare i principi base dei compilatori, integrando anche concetti avanzati come gestione dello scope, tipi dinamici e strutture dati.
 
-## 📜 Descrizione del Progetto
+---
 
-CineScript supporta:
+## 📚 Introduzione al progetto
 
-- Dichiarazione e gestione di variabili `float` e `string`
-- Operazioni aritmetiche con priorità e parentesi
-- Concatenazione di stringhe
-- Blocchi condizionali `if` (`se`) e cicli `while` (`mentre`)
-- Scope management (variabili valide solo all’interno di un blocco)
-- Funzioni predefinite come `somma(x, y)`
-- Comandi speciali per stampare e analizzare variabili
+CineScript consente di scrivere programmi usando una sintassi "narrativa", basata sul lessico del cinema. Il compilatore è in grado di interpretare ed eseguire dichiarazioni di variabili, operazioni aritmetiche, concatenazioni di stringhe, strutture condizionali (`if`) e comandi speciali come la stampa, la gestione della Symbol Table e l'accesso a funzioni matematiche.
 
-Tutti i comandi utilizzano una sintassi che richiama la terminologia cinematografica, rendendolo unico e didattico.
+---
 
-## 🧠 Comandi Supportati
+## 🛠 Tecnologie utilizzate
 
-| Comando      | Descrizione                                       |
-|--------------|----------------------------------------------------|
-| `azione`     | Dichiara una variabile `float`                    |
-| `dramma`     | Dichiara una variabile `string`                   |
-| `riprendi`   | Riassegna il valore a una variabile già dichiarata |
-| `scena`      | Stampa il contenuto di una variabile              |
-| `zoom`       | Stampa il contenuto `float` in formato esteso     |
-| `cast`       | Stampa la Symbol Table                            |
-| `finale`     | Termina il programma con messaggio finale         |
-| `taglia`     | Interrompe immediatamente l’esecuzione            |
+- **Flex (Fast Lexical Analyzer)**: utilizzato per la generazione dell'analizzatore lessicale (`Cine-lex.l`), che trasforma l'input in token.
+- **Bison (YACC-compatible parser generator)**: utilizzato per costruire il parser (`CineScripty.y`), che analizza la grammatica del linguaggio.
+- **C**: per implementare la semantica, la Symbol Table, la gestione dello scope e le funzioni di runtime.
 
-## ✍️ Sintassi di Base
+---
 
-### Dichiarazione
+## 🧠 Funzionalità principali
 
+- **Dichiarazione e riassegnazione di variabili**
+  - `AZIONE ID = expr` → float
+  - `DRAMMA ID = expr` → stringa
+  - `RIPRENDI ID = expr` → riassegnazione
+
+- **Stampa su output**
+  - `SCENA expr`: stampa il valore.
+  - `ZOOM ID`: stampa il valore numerico completo.
+
+- **Strutture di controllo**
+  - `IF (condizione) Ellipsis` o `SE (...) Ellipsis`
+  - `WHILE (condizione) Ellipsis` o `MENTRE (...) Ellipsis`
+
+- **Gestione dello scope**
+  - Le variabili hanno un campo `scope` che ne regola la visibilità.
+  - `currentScope` varia durante l'esecuzione per gestire blocchi `if`.
+
+- **Funzioni matematiche**
+  - `SOMMA(a,b)`, `DIFFERENZA(a,b)`, `PRODOTTO(a,b)`, `DIVISO(a,b)`
+  - `PI`, `RADICEQ(x)`, `ABS(x)`, `POTENZA(x, y)`
+
+- **Operatori**
+  - Aritmetici: `+ - * / %`
+  - Confronto: `== != > < >= <=`
+
+- **Commenti**
+  - Linee precedute da `@` vengono ignorate.
+
+- **Visualizzazione Symbol Table**
+  - `CAST`: stampa tutte le variabili salvate.
+
+- **Aiuto**
+  - `HELP` o `SCENEGGIATURA`: mostra tutti i comandi disponibili.
+
+---
+
+## 🧮 Symbol Table
+
+- Implementata come **linked list**, tiene traccia di:
+  - `ID`, `Tipo (float|string)`, `Scope`, `Valore o Stringa`
+- Tutte le variabili, anche quelle nei blocchi condizionali, vengono salvate nella Symbol Table.
+- Non esiste alcuna cancellazione: lo scope viene usato nel `lookup()` per selezionare la variabile corretta.
+
+---
+
+## 🧩 Grammatica del linguaggio
+
+```ebnf
+prog        → lista_stmt | lista_stmt FINALE
+stmt        → AZIONE ID = expr
+            | DRAMMA ID = expr
+            | RIPRENDI ID = expr
+            | SCENA expr
+            | ZOOM ID
+            | IF (compare) { lista_stmt }
+            | WHILE (compare) { lista_stmt }
+            | CAST
+            | HELP
+            | SCENEGGIATURA
+
+expr        → ID | NUM | STRING
+            | expr + expr
+            | expr - expr
+            | expr * expr
+            | expr / expr
+            | expr % expr
+            | - expr
+            | ( expr )
+            | funzione(expr, expr)
+            | costante
+
+compare     → expr == expr | expr != expr | expr > expr | ...
 ```
-azione x = 5
-dramma saluto = "Ciao"
+
+---
+
+## 💻 Come compilare ed eseguire
+
+Assicurati di avere `flex`, `bison` e `gcc` installati. Poi, esegui:
+
+```bash
+make
 ```
 
-### Operazioni
+Verrà generato l'eseguibile `cinescript`. Per eseguire uno script, puoi usare:
 
-```
-azione somma = x + 3 * 2
-azione media = (x + y) / 2
-dramma messaggio = saluto + " mondo"
+```bash
+./cinescript < TEST.cinema
 ```
 
-### Riassegnazione
+---
 
-```
-riprendi x = x + 1
-```
+## 🧪 File di test
 
-### Blocchi
+Il file `TEST.cinema` contiene esempi completi di input. È utile per verificare il funzionamento del compilatore.
 
-```
-se (x > 5) {
-    scena "Maggiore di 5"
-}
+---
 
-mentre (x > 0) {
-    scena x
-    riprendi x = x - 1
-}
-```
+## 📎 Decisioni progettuali
 
-## 🧮 Funzioni Predefinite
+- **Symbol Table con linked list** per semplicità e flessibilità nella gestione dello scope.
+- **currentScope variabile** per decidere se stampare o eseguire istruzioni (condizioni).
+- **esegui_blocco flag** per evitare esecuzioni in blocchi falsi.
+- **Gestione separata per float e string**: facilita l’implementazione e la semantica.
+- **Rimozione dei `brace_statement`**: non viene più cancellata nessuna variabile.
 
-Attualmente è disponibile:
+---
 
-```
-azione risultato = somma(3.0, 4.5)
-```
+## 📌 Esempi validi
 
-Le funzioni accettano variabili o numeri. In futuro è possibile aggiungerne altre.
-
-## 🛠️ Compilazione
-
-```
-flex Cine-lex.l
-bison -d CineScripty.y
-gcc lex.yy.c CineScripty.tab.c -o cinescript -lm
-```
-
-## ▶️ Esecuzione
-
-```
-./cinescript < test.cinema
-```
-
-## 🧪 Esempio di Test (test.cinema)
-
-```
+```cinema
 azione a = 5
-azione b = 3.2
-azione somma = somma(a, b)
-scena somma
+azione b = 3.20
+azione sum = somma(a, b)
+scena sum
+scena "------"
 
 dramma s1 = "Ciao "
 dramma s2 = "Mondo"
 dramma saluto = s1 + s2
 scena saluto
 
-azione x = 9
-azione y = 2
-azione z = (x + y) / 2
-scena z
+azione m = 4.5
+azione n = 2
+azione prodotto = prodotto(m, n)
+scena prodotto
 
-se (a > b) {
-    scena "Condizione vera"
-}
-
-mentre (x > 0) {
-    scena x
-    riprendi x = x - 2
-}
-
-cast
-finale
+scena potenza(2,3)   @ 8
 ```
 
-## 📦 Struttura Interna
+---
 
-### Symbol Table
+## ✅ Conforme alle richieste del docente
 
-Una lista concatenata di variabili definite nel programma, ognuna contenente:
+- Tutte le variabili sono salvate nella Symbol Table.
+- Gestione dello scope corretta e persistente.
+- Eliminato `brace_statement`.
+- Nessuna cancellazione variabili.
+- Aiuto/documentazione tramite `HELP` e `SCENEGGIATURA`.
 
-- Tipo (`float` o `string`)
-- Nome identificatore
-- Scope
-- Valore (numerico o stringa)
+---
 
-### Scope
+## 👨‍🏫 Autore
 
-Ogni blocco `{}` crea un nuovo livello di scope. Le variabili dichiarate al suo interno vengono rimosse al termine del blocco.
+Progetto sviluppato da **Emanuele Pippa** per il corso universitario sui compilatori.
 
-## ✅ Funzionalità Implementate
-
-- [x] Dichiarazione e riassegnazione variabili
-- [x] Operazioni aritmetiche e concatenazioni
-- [x] Gestione dello scope
-- [x] Blocchi `if` e `while`
-- [x] Funzione `somma(x, y)`
-- [x] Stampa semplice e completa
-- [x] Stampa della Symbol Table
-
-## 👤 Autore
-
-**Emanuele Pippa**  
-Progetto universitario basato su *Compilers - Principles, Techniques, and Tools (Dragon Book)*  
-Libera Università di Bolzano - Corso Compilatori e Linguaggio Formale
+---

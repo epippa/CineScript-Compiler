@@ -3,10 +3,7 @@
 /* Licenza: CC BY-NC 4.0                          */
 /* ============================================== */
 // CineScript - Linguaggio di programmazione basato sulla sceneggiatura
-// @EMANUELE PIPPA
-// CineScript - Linguaggio di programmazione basato sulla sceneggiatura
 
-/* definitions */
 %{
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,6 +28,7 @@ struct Variable {
 
 //variabili globali
 int currentScope = 0;
+float pi_greco = 3.1415926;
 int esegui_blocco = 1;  //se è 1, esegue le azioni semantiche
 Variable* head = NULL;
 Variable* tail = NULL;
@@ -38,6 +36,7 @@ char* output;
 
 void yyerror(const char *s);
 int yylex(void);
+Variable* errore(const char* message);
 Variable* lookup(char* s);
 Variable varOp(Variable a, Variable b, char op);
 Variable toVar(char* s, float f);
@@ -46,6 +45,7 @@ void addVariable(char* type, char* name, float numero, char* stringa, int scope)
 void changeValue(Variable* v, Variable newVal);
 void printValue(Variable* var);
 void printComplete(Variable* var);
+void printHelp(void);
 float getFloatValue(Variable v);
 char* getStringValue(Variable temp);
 void printSymbolTable(void);
@@ -59,7 +59,7 @@ Variable* eseguiFunzione(char* nome, Variable* a, Variable* b);
 }
 
 //dichiazione token riconosciuti dal lexer
-%token IF DRAMMA RIPRENDI SCENA FINALE AZIONE ZOOM CAST WHILE
+%token IF DRAMMA RIPRENDI SCENA FINALE AZIONE ZOOM CAST WHILE PI RADICEQ HELP ABS POW
 %token <value> NUM
 %token <lexeme> ID STRING
 
@@ -82,17 +82,14 @@ Variable* eseguiFunzione(char* nome, Variable* a, Variable* b);
             ;
 */
 
-prog : stmtLi
-     | stmtLi FINALE  {printf("\n### Fine Copione ###\n\n"); exit(0);}
+prog : lista_stmt
+     | lista_stmt FINALE  {printf("\n### Fine Copione ###\n\n"); exit(0);}
      ;
-
-stmtLi : lista_stmt ;
 
 lista_stmt : stmt lista_stmt
            |
            ;
                                                                              
-//confronto
 compare : expr EQUAL expr   {$$=(getFloatValue(*$1) == getFloatValue(*$3));}
         | expr NOTEQ expr   {$$=(getFloatValue(*$1) != getFloatValue(*$3));}
         | expr GREAT expr   {$$=(getFloatValue(*$1) > getFloatValue(*$3));}
@@ -101,30 +98,30 @@ compare : expr EQUAL expr   {$$=(getFloatValue(*$1) == getFloatValue(*$3));}
         | expr LESSQ expr   {$$=(getFloatValue(*$1) <= getFloatValue(*$3));}
         ;
 
-//istruzioni
 //$$ :   $1   $2  $3  $4
 stmt : AZIONE ID '=' expr   {addVariable("float", $2, getFloatValue(*$4), NULL, currentScope);}     //assegnazione variabile float
      | DRAMMA ID '=' expr   {if(strcmp($4->type, "string") == 0)addVariable("string", $2, 0.0, getStringValue(*$4), currentScope); else yyerror("Non puoi assegnare float a una stringa!");}
-     | SCENA expr           {if (esegui_blocco == 1) printValue($2);}       //stampa stringa 
+     | SCENA expr           {if (esegui_blocco == 1) printValue($2);}           //stampa stringa 
      | RIPRENDI ID '=' expr {Variable* temp = lookup($2); if (temp && esegui_blocco) changeValue(temp, *$4);}   //riassegnazione variabili
      | ZOOM ID              {Variable* temp = lookup($2); if (temp && esegui_blocco) printComplete(temp);}      //stampa variabile per intero
      | IF com_expr '{' lista_stmt '}'     {currentScope--; esegui_blocco = 1;}  //esegui_blocco serve per decidere se eseguire o meno le azioni semantiche all'interno di un blocco
      | WHILE com_expr '{' lista_stmt '}'  {currentScope--; esegui_blocco = 1;}  //currentScope serve per tenere traccia della profondità dello scope (per scegliere nella Symbol Table la variabile da prendere)
-     | CAST                               {if (esegui_blocco == 1) printSymbolTable();}
+     | CAST     {if (esegui_blocco == 1) printSymbolTable();}
+     | HELP     {if (esegui_blocco == 1) printHelp();}
      ;
 
 
 com_expr : '(' compare ')' {
-    currentScope++;               // Entriamo sempre in un nuovo scope
-    esegui_blocco = $2;           // Ma eseguiamo solo se condizione vera
+    currentScope++;            // Entriamo sempre in un nuovo scope
+    esegui_blocco = $2;        // Ma eseguiamo solo se condizione vera
     $$ = $2;
 };
                                                                                                                                                               
 //expressions
-expr : ID              {Variable* temp = lookup($1); $$ = malloc(sizeof(Variable));
+expr : ID              {Variable* temp = lookup($1);    //cerco la variabile nella Symbol Table.
                             if(temp == NULL){if (esegui_blocco == 1) //Siamo in un blocco e non ho trovato la variabile
-                                yyerror("Variabile non trovata"); *$$ = toVar(NULL, 0.0); //cerco la variabile nella Symbol Table. Se assente: errore, restituisco puntatore fittizio per evitare crash.
-                            } else {*$$ = *temp;}}    //Se esiste, ne ritorno il puntatore
+                                $$ = errore("Variabile non trovata"); //errore, restituisco puntatore fittizio per evitare crash.
+                            } else {$$ = malloc(sizeof(Variable)); *$$ = *temp;}}    //Se esiste, ne ritorno il puntatore
      | NUM             {Variable temp = toVar(NULL, $1); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | STRING          {Variable temp = toVar($1, 0.0); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | expr '+' expr   {Variable temp = varOp(*$1, *$3, '+'); $$ = malloc(sizeof(temp)); *$$ = temp;}
@@ -132,11 +129,17 @@ expr : ID              {Variable* temp = lookup($1); $$ = malloc(sizeof(Variable
      | expr '*' expr   {Variable temp = varOp(*$1, *$3, '*'); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | expr '/' expr   {Variable temp = varOp(*$1, *$3, '/'); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | expr MOD expr   {Variable temp = varOp(*$1, *$3, '%'); $$ = malloc(sizeof(temp)); *$$ = temp;}
-     | '(' expr ')'    {$$ = $2;} //espressione tra parentesi
-     | ID '(' expr ',' expr ')'     {$$ = eseguiFunzione($1, $3, $5);} //somma(a,b)
-     | '-' expr %prec UNARIO_NEGATIVO {$$ = malloc(sizeof(Variable)); if(strcmp($2->type, "float") == 0) *$$ = toVar(NULL, -getFloatValue(*$2)); //unario negativo
+     | '(' expr ')'    {$$ = $2;}   //espressione tra parentesi
+     | PI              {Variable temp = toVar(NULL, pi_greco); $$ = malloc(sizeof(temp)); *$$ = temp;}
+     | ID '(' expr ',' expr ')'         {$$ = eseguiFunzione($1, $3, $5);} //somma(a,b), prodotto, ecc.
+     | '-' expr %prec UNARIO_NEGATIVO   {$$ = malloc(sizeof(Variable)); if(strcmp($2->type, "float") == 0) *$$ = toVar(NULL, -getFloatValue(*$2));
                                                                       else {yyerror("Errore: operatore unario '-' solo con float"); *$$ = toVar(NULL, 0.0);}}
-%%   /* routines */
+     | RADICEQ '(' expr ')' {if (strcmp($3->type, "float") != 0) {$$ = errore("Accetta solo numeri");} else {float valore = getFloatValue(*$3); if (valore < 0) {$$ = errore("NON esiste per numeri negativi");
+                            }else {$$ = malloc(sizeof(Variable)); *$$ = toVar(NULL, sqrt(valore));}}}
+     | ABS '(' expr ')'     {if (strcmp($3->type, "float") != 0) {$$ = errore("Accetta solo numeri");} else {$$ = malloc(sizeof(Variable)); *$$ = toVar(NULL, fabs(getFloatValue(*$3)));}}
+     | POW '(' expr ',' expr ')' {if (strcmp($3->type, "float") != 0 || strcmp($5->type, "float") != 0) {$$ = errore("Accetta solo numeri");} else {$$ = malloc(sizeof(Variable)); *$$ = toVar(NULL, pow(getFloatValue(*$3), getFloatValue(*$5)));}}
+
+%%
 
 //trova variabile nella symbol table (con lo scope più alto possibile, ma non olte il CurrentScope)
 Variable* lookup(char* ID) {
@@ -226,7 +229,7 @@ Variable varOp(Variable a, Variable b, char op) {
     }
 
     //Se non è ne float ne string
-    yyerror("Errore: tipi non compatibili");    //per evitare possibili errori
+    yyerror("Errore: tipi non compatibili");
     return result;
 }
 
@@ -259,7 +262,7 @@ void addVariable(char* type, char* name, float numero, char* stringa, int scope)
 
     nuova->next = NULL;
 
-    //aggiunge la variabile alla fine della lista / Symbol Table
+    //aggiunge la variabile alla fine della lista (Symbol Table)
     if (head == NULL) {
     head = nuova;
     tail = nuova;
@@ -310,8 +313,8 @@ void printValue(Variable* var) {
         if (var->value.floatValue == (int)var->value.floatValue)    //se è un numero intero
                 printf("%d\n", (int)var->value.floatValue);
         else printf("%.2f\n", var->value.floatValue);   //se è float
-    }else{ 
-        printf("%s\n", var->value.stringValue);     //se è stringa
+    }else{ //se è stringa
+        printf("%s\n", var->value.stringValue);
     }
 }
 
@@ -333,7 +336,7 @@ void printSymbolTable(void) {
         if (strcmp(current->type, "float") == 0) {
             printf("Value: %.2f)\n", current->value.floatValue);    //float, lo stampa con 2 cifre decimali
         } else {
-            printf("Text: %s)\n", current->value.stringValue); //string, lo stampa tra virgolette
+            printf("Text: %s)\n", current->value.stringValue);
         }
         current = current->next;
     }
@@ -396,10 +399,49 @@ void yyerror(const char *s) {
     fprintf(stderr, "Error: %s\n", s);
 }
 
+//restituisco puntatore fittizio per evitare crash.
+Variable* errore(const char* message) {
+    yyerror(message);
+    Variable* variabile_fittizia = malloc(sizeof(Variable));
+    *variabile_fittizia = toVar(NULL, 0.0);
+    return variabile_fittizia;
+}
+
 char* floatToString(float f) {
     char* buffer = malloc(32);
     snprintf(buffer, 32, "%.2f", f);
     return buffer;
+}
+
+void printHelp(void){
+    printf("\nCineScript - Linguaggio di programmazione basato sulla sceneggiatura\n\n"
+            "## Comandi disponibili: ##\n"
+            "- AZIONE ID = expr: Dichiarazione variabile numerica\n"
+            "- DRAMMA ID = expr: Dichiarazione variabile stringa\n"
+            "- RIPRENDI ID = expr: Riassegna un valore a una variabile\n"
+            "- SCENA expr: Stampa una stringa\n"
+            "- ZOOM ID: Stampa il valore completo di una variabile\n\n"
+            "- IF (condizione) {...}: Esegue un blocco se la condizione è vera\n"
+            "- SE (condizione) {...}: Esegue un blocco se la condizione è vera\n"
+            "- WHILE (condizione) {...}: Esegue un ciclo finché la condizione è vera... (attualmente non fa loop)\n"
+            "- MENTRE (condizione) {...}: Esegue un ciclo finché la condizione è vera... (attualmente non fa loop)\n\n"
+            "- CAST: Stampa la Symbol Table\n"
+            "- FINALE: Termina l'esecuzione del programma\n\n"
+            "- HELP: Mostra tutti i comandi possibili\n"
+            "- SCENEGGIATURA: Mostra tutti i comandi possibili\n\n"
+            " @ per scrivere commenti (non vengono stampati)\n\n"
+            "## Funzioni numeriche: ##\n"
+            "- SOMMA(a, b): Somma due numeri\n"
+            "- DIFFERENZA(a, b): Sottrae due numeri\n"
+            "- PRODOTTO(a, b): Moltiplica due numeri\n"
+            "- DIVISO(a, b): Divide due numeri\n"
+            "- PI: Costante pi greco\n"
+            "- RADICEQ(x): Radice quadrata di x\n"
+            "- ABS(x): Valore assoluto di x\n"
+            "- POTENZA(x, y): Potenza di x elevato a y\n\n"
+            "## Operatori: ##\n"
+            "- Aritmetica: + , - , * , / , %%\n"
+            "- Confronto: == , != , > , >= , < , <=\n\n");
 }
 
 int main() {

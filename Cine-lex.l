@@ -41,10 +41,15 @@ num     {digit}+(\.{digit}+)?
 "}"     {return '}';}
 ","     {return ',';}   /*sennò non mi va somma(a,b) */
 
-"if"    {return IF;}
+"piGreco"  {return PI;}
+"radiceQ"  {return RADICEQ;}  /*radice quadrata*/
+"abs"      {return ABS;} /* per i numeri assoluti */
+"potenza"  {return POW;}      /* potenza */
+
+"if"    {return IF;}	     /* senza ELSE perchè non ho usato i Jump */
 "se"    {return IF;}
-"while"      {return WHILE;}   /* Non so fare i salti condizionali, quindi x ora funziona come un if */
-"mentre"     {return WHILE;}
+"while"    {return WHILE;}   /* Salti condizionali NON implementati, quindi x ora funziona come un if */
+"mentre"   {return WHILE;}
 
 "azione"    {return AZIONE;}    /* dramma */
 "dramma"    {return DRAMMA;}    /* string */
@@ -53,6 +58,9 @@ num     {digit}+(\.{digit}+)?
 "finale"    {return FINALE;}    /* output */
 "cast"      {return CAST;}      /* print Symbol Table */
 "zoom"      {return ZOOM;}      /* stampa float per intero */
+
+"help"      {return HELP;}      /* per sapere i comandi possibili */
+"sceneggiatura" {return HELP;}  /* per sapere i comandi possibili */
 
 \"[^"]*\" {yylval.lexeme = strdup(yytext + 1);              // Rimuove la prima virgolette
            yylval.lexeme[strlen(yylval.lexeme) - 1] = '\0'; // Rimuove l'ultima virgolette
