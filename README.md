@@ -35,8 +35,8 @@ CineScript consente di scrivere programmi usando una sintassi "narrativa", basat
   - `ZOOM ID`: stampa il valore numerico completo.
 
 - **Strutture di controllo**
-  - `IF (condizione) Ellipsis` o `SE (...) Ellipsis`
-  - `WHILE (condizione) Ellipsis` o `MENTRE (...) Ellipsis`
+  - `IF (condizione) {...}` o `SE (...) {...}`
+  - `WHILE (condizione) {...}` o `MENTRE (...) {...}`
 
 - **Gestione dello scope**
   - Le variabili hanno un campo `scope` che ne regola la visibilità.
