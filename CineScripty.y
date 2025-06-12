@@ -3,6 +3,8 @@
 /* Licenza: CC BY-NC 4.0                          */
 /* ============================================== */
 // CineScript - Linguaggio di programmazione basato sulla sceneggiatura
+// @EMANUELE PIPPA
+// CineScript - Linguaggio di programmazione basato sulla sceneggiatura
 
 /* definitions */
 %{
@@ -68,6 +70,7 @@ Variable* eseguiFunzione(char* nome, Variable* a, Variable* b);
 %left '+' '-'
 %left '*' '/' '%'
 %left GREAT LESS EQUAL GREATQ LESSQ NOTEQ MOD
+%right UNARIO_NEGATIVO
 
 %start prog
 
@@ -131,31 +134,35 @@ expr : ID              {Variable* temp = lookup($1); $$ = malloc(sizeof(Variable
      | expr MOD expr   {Variable temp = varOp(*$1, *$3, '%'); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | '(' expr ')'    {$$ = $2;} //espressione tra parentesi
      | ID '(' expr ',' expr ')'     {$$ = eseguiFunzione($1, $3, $5);} //somma(a,b)
-           
+     | '-' expr %prec UNARIO_NEGATIVO {$$ = malloc(sizeof(Variable)); if(strcmp($2->type, "float") == 0) *$$ = toVar(NULL, -getFloatValue(*$2)); //unario negativo
+                                                                      else {yyerror("Errore: operatore unario '-' solo con float"); *$$ = toVar(NULL, 0.0);}}
 %%   /* routines */
 
-//trova variabile nella symbol table (con lo scope più alto possibile)
+//trova variabile nella symbol table (con lo scope più alto possibile, ma non olte il CurrentScope)
 Variable* lookup(char* ID) {
     Variable* current = head;
     Variable* matched = NULL;
     int maxScope = -1;
 
+    //Scorre la Symbol Table
     while (current != NULL) {
+        //Controlla se l'ID corrisponde e se lo scope è minore o uguale al currentScope
         if (strcmp(current->id, ID) == 0 && current->scope <= currentScope) {
+            //Se ha scope più vicino (maggiore) di quello trovato finora, lo aggiorna
             if (current->scope > maxScope) {
-                matched = current;
-                maxScope = current->scope;
+                matched = current;      // Aggiorna la variabile trovata
+                maxScope = current->scope;  // Aggiorna il massimo scope trovato
             }
         }
         current = current->next;
     }
-    return matched;
+    return matched;     //ritorna la variabile trovata o NULL
 }
 
 
 char* floatToString(float f);
 
-//crea una variabile temporanea usata solo per calcoli o valori letterali
+//crea una variabile per calcoli o valori letterali
 Variable toVar(char* stringa, float number) {
     Variable var;
     var.id = strdup("");    //temporaneo
@@ -188,14 +195,11 @@ Variable varOp(Variable a, Variable b, char op) {
         result.value.stringValue = malloc(strlen(aStr) + strlen(bStr) + 1);
         strcpy(result.value.stringValue, aStr);
         strcat(result.value.stringValue, bStr);
-
-        if (strcpy(a.type, "float") == 0) free(aStr);  //libera la memoria se era float (memoria allocata da floatToString)
-        if (strcmp(b.type, "float") == 0) free(bStr);  //se era string, non libera la memoria 
         return result;
     }
 
     //Se entrambi float fa operazioni aritmetiche
-    if (strcmp(a.type, "float") == 0 && strcmp(b.type, "float") == 0) {
+    else if (strcmp(a.type, "float") == 0 && strcmp(b.type, "float") == 0) {
         result.type = "float";
         switch(op) {
             case '+':
