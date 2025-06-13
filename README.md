@@ -157,16 +157,6 @@ scena potenza(2,3)   @ 8
 
 ---
 
-## ✅ Conforme alle richieste del docente
-
-- Tutte le variabili sono salvate nella Symbol Table.
-- Gestione dello scope corretta e persistente.
-- Eliminato `brace_statement`.
-- Nessuna cancellazione variabili.
-- Aiuto/documentazione tramite `HELP` e `SCENEGGIATURA`.
-
----
-
 ## 👨‍🏫 Autore
 
 Progetto sviluppato da **Emanuele Pippa** per il corso universitario sui compilatori.
