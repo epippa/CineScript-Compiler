@@ -70,46 +70,63 @@ CineScript consente di scrivere programmi usando una sintassi "narrativa", basat
 
 ---
 
-## 🧩 Grammatica del linguaggio
+## Grammatica del linguaggio
 
-```ebnf
-prog        → lista_stmt | lista_stmt FINALE
-stmt        → AZIONE ID = expr
-            | DRAMMA ID = expr
-            | RIPRENDI ID = expr
-            | SCENA expr
-            | ZOOM ID
-            | IF (compare) { lista_stmt }
-            | WHILE (compare) { lista_stmt }
-            | CAST
-            | HELP
-            | SCENEGGIATURA
+- La grammatica parte da `prog`, che rappresenta l'intero programma e contiene una lista di istruzioni (`lista_stmt`).
 
-expr        → ID | NUM | STRING
-            | expr + expr
-            | expr - expr
-            | expr * expr
-            | expr / expr
-            | expr % expr
-            | - expr
-            | ( expr )
-            | funzione(expr, expr)
-            | costante
+- `stmt` rappresenta un'istruzione specifica (le sue produzioni includono dichiarazioni, riassegnazioni, comandi di stampa e blocchi condizionali).
 
-compare     → expr == expr | expr != expr | expr > expr | ...
+- `IF` e `WHILE` aprono nuovi blocchi. Quando vengono letti, si entra in un nuovo `scope` (incrementando `currentScope`), e si esegue il blocco solo se la condizione è vera. Alla fine del blocco, `currentScope` viene decrementato.
+
+- Le variabili vengono create tramite i comandi `AZIONE` e `DRAMMA`, e possono assumere valori numerici o stringa. Il non-terminal `expr` gestisce tutte le espressioni matematiche, concatenate, e l’uso delle funzioni.
+
 ```
+prog → lista_stmt | lista_stmt FINALE
 
+lista_stmt → stmt lista_stmt
+           |
+
+stmt → AZIONE ID = expr
+     | DRAMMA ID = expr
+     | RIPRENDI ID = expr
+     | SCENA expr
+     | ZOOM ID
+     | IF (compare) { lista_stmt }
+     | WHILE (compare) { lista_stmt }
+     | CAST
+     | HELP
+
+expr → ID 
+     | NUM 
+     | STRING
+     | expr + expr
+     | expr - expr
+     | expr * expr
+     | expr / expr
+     | expr % expr
+     | - expr
+     | ( expr )
+     | funzione(expr, expr)
+     | PI
+
+compare → expr == expr 
+        | expr != expr 
+        | expr > expr 
+        | expr >= expr 
+        | expr < expr 
+        | expr <= expr
+```
 ---
 
-## 💻 Come compilare ed eseguire
+## Compilare ed Esecuzione
 
-Assicurati di avere `flex`, `bison` e `gcc` installati. Poi, esegui:
+Bisogna avere `flex`, `bison` e `gcc` installati. Poi, esegui:
 
 ```bash
 make
 ```
 
-Verrà generato l'eseguibile `cinescript`. Per eseguire uno script, puoi usare:
+Verrà generato l'eseguibile `cinescript`. Per eseguirlo, puoi usare:
 
 ```bash
 ./cinescript < TEST.cinema
@@ -117,48 +134,43 @@ Verrà generato l'eseguibile `cinescript`. Per eseguire uno script, puoi usare:
 
 ---
 
-## 🧪 File di test
+## File di test
 
 Il file `TEST.cinema` contiene esempi completi di input. È utile per verificare il funzionamento del compilatore.
 
 ---
 
-## 📎 Decisioni progettuali
+## Esempi validi
 
-- **Symbol Table con linked list** per semplicità e flessibilità nella gestione dello scope.
-- **currentScope variabile** per decidere se stampare o eseguire istruzioni (condizioni).
-- **esegui_blocco flag** per evitare esecuzioni in blocchi falsi.
-- **Gestione separata per float e string**: facilita l’implementazione e la semantica.
-- **Rimozione dei `brace_statement`**: non viene più cancellata nessuna variabile.
-
----
-
-## 📌 Esempi validi
-
-```cinema
+```
+@ Variabili Numeriche
 azione a = 5
 azione b = 3.20
+
+@ Operazioni matematiche
 azione sum = somma(a, b)
 scena sum
-scena "------"
 
+@ Variabili di Testo
 dramma s1 = "Ciao "
 dramma s2 = "Mondo"
+
+@ Concatenazione di stringhe
 dramma saluto = s1 + s2
 scena saluto
 
-azione m = 4.5
-azione n = 2
-azione prodotto = prodotto(m, n)
-scena prodotto
+@ Blocco Condizionale
+if (a > b){
+    azione m = 4.5
+    azione n = 2
+    azione prodotto = prodotto(m, n)
+    scena prodotto
+}
 
-scena potenza(2,3)   @ 8
+@ Visualizzare la Symbol Table
+CAST
+
+@ Termina programma
+FINALE
 ```
-
----
-
-## 👨‍🏫 Autore
-
-Progetto sviluppato da **Emanuele Pippa** per il corso universitario sui compilatori.
-
 ---
