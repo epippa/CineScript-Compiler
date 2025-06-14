@@ -56,14 +56,14 @@ CineScript consente di scrivere programmi usando una sintassi "narrativa", basat
   - `HELP` o `SCENEGGIATURA`: mostra tutti i comandi disponibili.
 
 - **Gestione dello scope**
-- Ogni variabile ha un campo `scope` che indica dove è stata dichiarata:
+  - Ogni variabile ha un campo `scope` che indica dove è stata dichiarata:
 scope = 0 se si trova fuori da blocchi if o while,
 scope = 1 (o maggiore) se si trova all’interno di uno di questi blocchi.
 
-- Il valore di `currentScope` cambia mentre il programma viene eseguito, in base a dove ci si trova nel codice.
+  - Il valore di `currentScope` cambia mentre il programma viene eseguito, in base a dove ci si trova nel codice.
 Per esempio, quando si entra in un blocco if, currentScope aumenta di 1; quando si esce, torna al valore precedente.
 
-- Quando cerchiamo una variabile con il `lookup()`, confrontiamo il suo scope con currentScope.
+  - Quando cerchiamo una variabile con il `lookup()`, confrontiamo il suo scope con currentScope.
 In questo modo, il programma può decidere se usare la variabile dichiarata fuori o dentro il blocco, a seconda di quale è più adatta.
 ---
 
