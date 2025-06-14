@@ -23,7 +23,7 @@ CineScript consente di scrivere programmi usando una sintassi "narrativa", basat
 
 ---
 
-## 🧠 Funzionalità principali
+## 🧠 Funzionalità
 
 - **Dichiarazione e riassegnazione di variabili**
   - `AZIONE ID = expr` → float
@@ -32,16 +32,15 @@ CineScript consente di scrivere programmi usando una sintassi "narrativa", basat
 
 - **Stampa su output**
   - `SCENA expr`: stampa il valore.
-  - `ZOOM ID`: stampa il valore numerico completo.
+  - `ZOOM ID`: stampa il valore completo.
+  - `FINALE` : stampa l'output e termina il programma
+  - `CAST`: stampa tutta la Symbol Table (ID, type, scope, value)
 
-- **Strutture di controllo**
+- **Strutture condizionali**
   - `IF (condizione) {...}` o `SE (...) {...}`
   - `WHILE (condizione) {...}` o `MENTRE (...) {...}`
-
-- **Gestione dello scope**
-  - Le variabili hanno un campo `scope` che ne regola la visibilità.
-  - `currentScope` varia durante l'esecuzione per gestire blocchi `if`.
-
+  - Attualmente non sono stati implementati i salti condizionali, quindi non c'è l'ELSE che segue l'IF, e il WHILE viene eseguito una sola volta, quindi senza loop. 
+  
 - **Funzioni matematiche**
   - `SOMMA(a,b)`, `DIFFERENZA(a,b)`, `PRODOTTO(a,b)`, `DIVISO(a,b)`
   - `PI`, `RADICEQ(x)`, `ABS(x)`, `POTENZA(x, y)`
@@ -53,12 +52,19 @@ CineScript consente di scrivere programmi usando una sintassi "narrativa", basat
 - **Commenti**
   - Linee precedute da `@` vengono ignorate.
 
-- **Visualizzazione Symbol Table**
-  - `CAST`: stampa tutte le variabili salvate.
-
 - **Aiuto**
   - `HELP` o `SCENEGGIATURA`: mostra tutti i comandi disponibili.
 
+- **Gestione dello scope**
+- Ogni variabile ha un campo `scope` che indica dove è stata dichiarata:
+scope = 0 se si trova fuori da blocchi if o while,
+scope = 1 (o maggiore) se si trova all’interno di uno di questi blocchi.
+
+- Il valore di `currentScope` cambia mentre il programma viene eseguito, in base a dove ci si trova nel codice.
+Per esempio, quando si entra in un blocco if, currentScope aumenta di 1; quando si esce, torna al valore precedente.
+
+- Quando cerchiamo una variabile con il `lookup()`, confrontiamo il suo scope con currentScope.
+In questo modo, il programma può decidere se usare la variabile dichiarata fuori o dentro il blocco, a seconda di quale è più adatta.
 ---
 
 ## 🧮 Symbol Table

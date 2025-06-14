@@ -18,7 +18,7 @@ typedef struct Variable Variable;
 struct Variable {
     char* type; //float o string
     char* id;   //nome della variabile
-    int scope;  //livello profondità dentro IF
+    int scope;  //livello profondità
     union { 
         float floatValue;
         char* stringValue;
@@ -27,7 +27,7 @@ struct Variable {
 };
 
 //variabili globali
-int currentScope = 0;
+int currentScope = 0;   //tiene traccia della profondità dello scope, varia durante l'esecuzione
 float pi_greco = 3.1415926;
 int esegui_blocco = 1;  //se è 1, esegue le azioni semantiche
 Variable* head = NULL;
@@ -74,13 +74,7 @@ Variable* eseguiFunzione(char* nome, Variable* a, Variable* b);
 
 %start prog
 
-%%      
-/* Sintactic Rules */
-/* CFG
- <non_term> : <body> {<action>}
-            | <body> {<sction>}
-            ;
-*/
+%%  /* Sintactic Rules */
 
 prog : lista_stmt
      | lista_stmt FINALE  {printf("\n### Fine Copione ###\n\n"); exit(0);}
@@ -110,7 +104,6 @@ stmt : AZIONE ID '=' expr   {addVariable("float", $2, getFloatValue(*$4), NULL, 
      | HELP     {if (esegui_blocco == 1) printHelp();}
      ;
 
-
 com_expr : '(' compare ')' {
     currentScope++;            // Entriamo sempre in un nuovo scope
     esegui_blocco = $2;        // Ma eseguiamo solo se condizione vera
@@ -131,8 +124,8 @@ expr : ID              {Variable* temp = lookup($1);    //cerco la variabile nel
      | expr MOD expr   {Variable temp = varOp(*$1, *$3, '%'); $$ = malloc(sizeof(temp)); *$$ = temp;}
      | '(' expr ')'    {$$ = $2;}   //espressione tra parentesi
      | PI              {Variable temp = toVar(NULL, pi_greco); $$ = malloc(sizeof(temp)); *$$ = temp;}
-     | ID '(' expr ',' expr ')'         {$$ = eseguiFunzione($1, $3, $5);} //somma(a,b), prodotto, ecc.
-     | '-' expr %prec UNARIO_NEGATIVO   {$$ = malloc(sizeof(Variable)); if(strcmp($2->type, "float") == 0) *$$ = toVar(NULL, -getFloatValue(*$2));
+     | ID '(' expr ',' expr ')'         {$$ = eseguiFunzione($1, $3, $5);} //somma(a,b), prodotto(a,b), ecc.
+     | '-' expr %prec UNARIO_NEGATIVO   {$$ = malloc(sizeof(Variable)); if(strcmp($2->type, "float") == 0) *$$ = toVar(NULL, -getFloatValue(*$2));  //converte un float in negativo
                                                                       else {yyerror("Errore: operatore unario '-' solo con float"); *$$ = toVar(NULL, 0.0);}}
      | RADICEQ '(' expr ')' {if (strcmp($3->type, "float") != 0) {$$ = errore("Accetta solo numeri");} else {float valore = getFloatValue(*$3); if (valore < 0) {$$ = errore("NON esiste per numeri negativi");
                             }else {$$ = malloc(sizeof(Variable)); *$$ = toVar(NULL, sqrt(valore));}}}
@@ -153,7 +146,7 @@ Variable* lookup(char* ID) {
         if (strcmp(current->id, ID) == 0 && current->scope <= currentScope) {
             //Se ha scope più vicino (maggiore) di quello trovato finora, lo aggiorna
             if (current->scope > maxScope) {
-                matched = current;      // Aggiorna la variabile trovata
+                matched = current;          // Aggiorna la variabile trovata
                 maxScope = current->scope;  // Aggiorna il massimo scope trovato
             }
         }
@@ -239,7 +232,7 @@ Variable getValue(Variable val) {
 
 //aggiunge una variabile alla Symbol Table
 void addVariable(char* type, char* name, float numero, char* stringa, int scope) {
-    //assegna memoria per la nuova variabile
+    //alloca memoria per la nuova variabile
     Variable* nuova = malloc(sizeof(Variable));
     if (!nuova) {
         yyerror("Errore: allocazione fallita");
@@ -272,6 +265,7 @@ void addVariable(char* type, char* name, float numero, char* stringa, int scope)
     }
 }
 
+//riassegna il valore di una variabile esistente
 void changeValue(Variable* oldValue, Variable newValue) {
     if (oldValue == NULL) {
         yyerror("Errore: variabile inesistente");
@@ -305,6 +299,7 @@ char* getStringValue(Variable temp) {
     return temp.value.stringValue;
 }
 
+//stampa il valore di una variabile
 void printValue(Variable* var) {
     if (var == NULL) {
         yyerror("Errore: variabile inesistente");
@@ -313,11 +308,12 @@ void printValue(Variable* var) {
         if (var->value.floatValue == (int)var->value.floatValue)    //se è un numero intero
                 printf("%d\n", (int)var->value.floatValue);
         else printf("%.2f\n", var->value.floatValue);   //se è float
-    }else{ //se è stringa
+    }else{          //se è stringa
         printf("%s\n", var->value.stringValue);
     }
 }
 
+//stampa il valore completo di un float
 void printComplete(Variable* var) {
     if (strcmp(var->type, "float") == 0)
         printf("%f\n", var->value.floatValue);
@@ -343,7 +339,7 @@ void printSymbolTable(void) {
 }
 
 Variable* eseguiFunzione(char* nome, Variable* a, Variable* b) {
-    if (strcmp(nome, "somma") == 0) {       //somma(a, b)...
+    if (strcmp(nome, "somma") == 0) {       //somma(a, b)
         if(!a || !b) {
             yyerror("Manca un argomento");
             return NULL;
@@ -355,7 +351,7 @@ Variable* eseguiFunzione(char* nome, Variable* a, Variable* b) {
         return res;
     }
 
-    if (strcmp(nome, "differenza") == 0) {
+    if (strcmp(nome, "differenza") == 0) {  //differenza(a, b)
         if(!a || !b) {
             yyerror("Manca un argomento");
             return NULL;
@@ -395,6 +391,7 @@ Variable* eseguiFunzione(char* nome, Variable* a, Variable* b) {
     return NULL;
 }
 
+//gestione degli errori
 void yyerror(const char *s) {
     fprintf(stderr, "Error: %s\n", s);
 }
@@ -413,6 +410,7 @@ char* floatToString(float f) {
     return buffer;
 }
 
+//stampa i comandi disponibili
 void printHelp(void){
     printf("\nCineScript - Linguaggio di programmazione basato sulla sceneggiatura\n\n"
             "## Comandi disponibili: ##\n"

@@ -3,7 +3,7 @@
 /* Licenza: CC BY-NC 4.0                          */
 /* ============================================== */
 
-%option noyywrap
+%option noyywrap	/* disabilitare la funzione yywrap() per far terminare automaticamente all'EOF senza cercare altri input. */
 %option case-insensitive
 
 %{
@@ -43,10 +43,10 @@ num     {digit}+(\.{digit}+)?
 
 "piGreco"  {return PI;}
 "radiceQ"  {return RADICEQ;}  /*radice quadrata*/
-"abs"      {return ABS;} /* per i numeri assoluti */
+"abs"      {return ABS;}      /* per i numeri assoluti */
 "potenza"  {return POW;}      /* potenza */
 
-"if"    {return IF;}	     /* senza ELSE perchè non ho usato i Jump */
+"if"    {return IF;}         /* senza ELSE perchè non ho usato i Jump */
 "se"    {return IF;}
 "while"    {return WHILE;}   /* Salti condizionali NON implementati, quindi x ora funziona come un if */
 "mentre"   {return WHILE;}
@@ -62,9 +62,9 @@ num     {digit}+(\.{digit}+)?
 "help"      {return HELP;}      /* per sapere i comandi possibili */
 "sceneggiatura" {return HELP;}  /* per sapere i comandi possibili */
 
-\"[^"]*\" {yylval.lexeme = strdup(yytext + 1);              // Rimuove la prima virgolette
-           yylval.lexeme[strlen(yylval.lexeme) - 1] = '\0'; // Rimuove l'ultima virgolette
-           return STRING;}
+\"[^"]*\" {yylval.lexeme = strdup(yytext + 1);	  	    /* Copia tutto il contenuto tra virgolette, escludendo la prima virgoletta (salta il primo carattere) */
+           yylval.lexeme[strlen(yylval.lexeme) - 1] = '\0'; /* Rimuove l'ultima virgoletta sostituendola con terminatore di stringa */
+           return STRING;}				    /* Ritorna il token STRING al parser */
 {id}        {yylval.lexeme = strdup(yytext); return ID;}
 {num}       {yylval.value = atof(yytext); return NUM;}
 .           {/* ignora altri caratteri*/}
