@@ -93,7 +93,7 @@ compare : expr EQUAL expr   {$$=(getFloatValue(*$1) == getFloatValue(*$3));}
         ;
 
 //$$ :   $1   $2  $3  $4
-stmt : AZIONE ID '=' expr   {addVariable("float", $2, getFloatValue(*$4), NULL, currentScope);}     //assegnazione variabile float
+stmt : AZIONE ID '=' expr   {if(strcmp($4->type, "float") == 0)addVariable("float", $2, getFloatValue(*$4), NULL, currentScope); else yyerror("Non puoi assegnare una stringa a un float!");}     //assegnazione variabile float
      | DRAMMA ID '=' expr   {if(strcmp($4->type, "string") == 0)addVariable("string", $2, 0.0, getStringValue(*$4), currentScope); else yyerror("Non puoi assegnare float a una stringa!");}
      | SCENA expr           {if (esegui_blocco == 1) printValue($2);}           //stampa stringa 
      | RIPRENDI ID '=' expr {Variable* temp = lookup($2); if (temp && esegui_blocco) changeValue(temp, *$4);}   //riassegnazione variabili
