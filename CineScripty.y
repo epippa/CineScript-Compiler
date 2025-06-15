@@ -10,8 +10,6 @@
 #include <string.h>
 #include <math.h>
 
-#define CHAR_MAX 256
-
 typedef struct Variable Variable;
 
 //Symbol Table
@@ -32,7 +30,6 @@ float pi_greco = 3.1415926;
 int esegui_blocco = 1;  //se è 1, esegue le azioni semantiche
 Variable* head = NULL;
 Variable* tail = NULL;
-char* output;
 
 void yyerror(const char *s);
 int yylex(void);
@@ -444,8 +441,6 @@ void printHelp(void){
 
 int main() {
     int currentScope = 0;
-    output = malloc(CHAR_MAX);
-    strcpy(output, "");
     yyparse();
     return 0;
 }
