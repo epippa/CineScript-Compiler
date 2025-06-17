@@ -64,17 +64,16 @@ Variable* eseguiFunzione(char* nome, Variable* a, Variable* b);
 %type <value> com_expr compare
 %type <variabile> expr
 
+%left GREAT LESS EQUAL GREATQ LESSQ NOTEQ MOD
 %left '+' '-'
 %left '*' '/' '%'
-%left GREAT LESS EQUAL GREATQ LESSQ NOTEQ MOD
 %right UNARIO_NEGATIVO
 
 %start prog
 
 %%  /* Sintactic Rules */
 
-prog : lista_stmt
-     | lista_stmt FINALE  {printf("\n### Fine Copione ###\n\n"); exit(0);}
+prog : lista_stmt FINALE  {printf("\n### Fine Copione ###\n\n"); exit(0);}
      ;
 
 lista_stmt : stmt lista_stmt
