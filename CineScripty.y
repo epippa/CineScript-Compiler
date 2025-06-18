@@ -64,9 +64,9 @@ Variable* eseguiFunzione(char* nome, Variable* a, Variable* b);
 %type <value> com_expr compare
 %type <variabile> expr
 
-%left GREAT LESS EQUAL GREATQ LESSQ NOTEQ MOD
+%left GREAT LESS EQUAL GREATQ LESSQ NOTEQ
 %left '+' '-'
-%left '*' '/' '%'
+%left '*' '/' MOD
 %right UNARIO_NEGATIVO
 
 %start prog
