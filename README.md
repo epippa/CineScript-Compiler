@@ -180,3 +180,22 @@ CAST
 FINALE
 ```
 ---
+
+## Modifiche Future
+
+ - Rendere la Symbol Table ad albero, sempre usando le liste. Dal root a scendere, un puntatore punta al fratello e uno al figlio. 
+ - Il mio currentScope scorre tutta la lista partendo dall'inizio, fino a raggiungere la variabile desiderata, che è l'ultima in ordine di scope e/o creazione. È meglio partire dalla fine e tornare indietro (ci mette meno, scorre meno nodi prima di trovare quello corretto. 
+ - Lo scope non è gestito correttamente: eseguendo l'esempio seguente, possiamo vedere che il valore stampato di 'prova' sarà 2 anzichè 5. Questo perchè il lookup va a cercare la variabile con lo scope più vicino a 'currentScope' (currentScope=1 se entra in un IF), e siccome lo scope di 'prova = 2' è 1, il lookup prenderà prova=2, anche se la condizione dell'IF non è soddisfatta.
+```
+AZIONE a = 3
+AZIONE b = 7
+AZIONE prova = 5
+IF (a > b){
+ AZIONE prova = 2
+}
+
+IF (a < b){
+ SCENA prova
+}
+```
+---
