@@ -202,7 +202,9 @@ IF (a < b){
 ---
 ---
 
-## Autore
+---
+
+## 👤 Autore
 
 **Emanuele Pippa**  
 Studente di Informatica presso la Libera Università di Bolzano  
