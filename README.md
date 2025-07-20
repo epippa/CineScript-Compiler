@@ -200,3 +200,10 @@ IF (a < b){
 }
 ```
 ---
+---
+
+## Autore
+
+**Emanuele Pippa**  
+Studente di Informatica presso la Libera Università di Bolzano  
+GitHub: [epippa](https://github.com/epippa)
